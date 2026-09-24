@@ -1,0 +1,434 @@
+<!-- Analytics Dashboard Container -->
+<div class="analytics-dashboard">
+  
+  <!-- Header Section -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div class="title-section">
+        <mat-icon class="page-icon">analytics</mat-icon>
+        <div>
+          <h1 class="page-title">Analytics Dashboard</h1>
+          <p class="page-subtitle">
+            {{ currentUserRole === UserRole.ADMIN ? 'Organization-wide analytics' :
+               currentUserRole === UserRole.HR ? 'HR analytics and insights' :
+               currentUserRole === UserRole.MANAGER ? 'Team performance analytics' :
+               'Your personal insights' }}
+          </p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Time Range Selector -->
+        <mat-button-toggle-group [(value)]="selectedTimeRange" (change)="onTimeRangeChange($event.value)">
+          <mat-button-toggle value="7d">7 Days</mat-button-toggle>
+          <mat-button-toggle value="30d">30 Days</mat-button-toggle>
+          <mat-button-toggle value="90d">90 Days</mat-button-toggle>
+          <mat-button-toggle value="1y">1 Year</mat-button-toggle>
+        </mat-button-toggle-group>
+
+        <!-- Refresh Button -->
+        <button mat-icon-button (click)="refreshData()" [disabled]="isLoading" matTooltip="Refresh data">
+          <mat-icon [class.spinning]="isLoading">refresh</mat-icon>
+        </button>
+
+        <!-- Auto-refresh Toggle -->
+        <button mat-icon-button (click)="toggleAutoRefresh()" 
+                [class.active]="autoRefreshEnabled"
+                [matTooltip]="autoRefreshEnabled ? 'Auto-refresh enabled' : 'Auto-refresh disabled'">
+          <mat-icon>{{ autoRefreshEnabled ? 'sync' : 'sync_disabled' }}</mat-icon>
+        </button>
+
+        <!-- Export Button -->
+        <button mat-button [matMenuTriggerFor]="exportMenu" *ngIf="canExportData">
+          <mat-icon>download</mat-icon>
+          Export
+        </button>
+        <mat-menu #exportMenu="matMenu">
+          <button mat-menu-item (click)="exportDashboard('pdf')">
+            <mat-icon>picture_as_pdf</mat-icon>
+            <span>Export as PDF</span>
+          </button>
+          <button mat-menu-item (click)="exportDashboard('excel')">
+            <mat-icon>table_chart</mat-icon>
+            <span>Export as Excel</span>
+          </button>
+          <button mat-menu-item (click)="exportDashboard('csv')">
+            <mat-icon>description</mat-icon>
+            <span>Export as CSV</span>
+          </button>
+        </mat-menu>
+      </div>
+    </div>
+
+    <!-- Last Updated -->
+    <div class="last-updated" *ngIf="lastRefreshTime">
+      <mat-icon>update</mat-icon>
+      <span>Last updated {{ formatTimeAgo(lastRefreshTime) }}</span>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Loading analytics...</p>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div class="dashboard-content" *ngIf="!isLoading">
+
+    <!-- KPI Cards Section -->
+    <div class="kpi-section">
+      <div class="kpi-grid">
+        <mat-card *ngFor="let kpi of kpiCards" class="kpi-card" [ngClass]="getKPICardClass(kpi.color)">
+          <div class="kpi-icon">
+            <mat-icon>{{ kpi.icon }}</mat-icon>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-label">{{ kpi.title }}</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ kpi.value }}</span>
+              <div class="kpi-trend" *ngIf="kpi.trend !== undefined" [ngClass]="getTrendClass(kpi.trend)">
+                <mat-icon>{{ getTrendIcon(kpi.trend) }}</mat-icon>
+                <span>{{ kpi.trendPercentage }}%</span>
+              </div>
+            </div>
+            <span class="kpi-subtitle" *ngIf="kpi.description">{{ kpi.description }}</span>
+          </div>
+        </mat-card>
+      </div>
+    </div>
+
+    <!-- Charts and Insights Grid -->
+    <div class="analytics-grid">
+
+      <!-- Left Column: Charts -->
+      <div class="charts-column">
+
+        <!-- Attendance Trends Chart -->
+        <mat-card class="chart-card" *ngIf="attendanceTrendChart && canViewOrganizationInsights">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>show_chart</mat-icon>
+              Attendance Trends
+            </mat-card-title>
+            <button mat-icon-button [matMenuTriggerFor]="attendanceChartMenu">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #attendanceChartMenu="matMenu">
+              <button mat-menu-item (click)="exportChart('attendance', 'png')">
+                <mat-icon>image</mat-icon>
+                <span>Export as PNG</span>
+              </button>
+              <button mat-menu-item (click)="exportChart('attendance', 'pdf')">
+                <mat-icon>picture_as_pdf</mat-icon>
+                <span>Export as PDF</span>
+              </button>
+            </mat-menu>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="chart-container">
+              <canvas #attendanceChartCanvas></canvas>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Department Comparison Chart -->
+        <mat-card class="chart-card" *ngIf="departmentChart && canViewOrganizationInsights">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>business</mat-icon>
+              Department Comparison
+            </mat-card-title>
+            <button mat-icon-button [matMenuTriggerFor]="deptChartMenu">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #deptChartMenu="matMenu">
+              <button mat-menu-item (click)="exportChart('department', 'png')">
+                <mat-icon>image</mat-icon>
+                <span>Export as PNG</span>
+              </button>
+            </mat-menu>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="chart-container">
+              <canvas #departmentChartCanvas></canvas>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Leave Type Distribution Chart -->
+        <mat-card class="chart-card" *ngIf="leaveTypeChart">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>pie_chart</mat-icon>
+              Leave Distribution
+            </mat-card-title>
+            <button mat-icon-button [matMenuTriggerFor]="leaveChartMenu">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #leaveChartMenu="matMenu">
+              <button mat-menu-item (click)="exportChart('leave', 'png')">
+                <mat-icon>image</mat-icon>
+                <span>Export as PNG</span>
+              </button>
+            </mat-menu>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="chart-container doughnut">
+              <canvas #leaveTypeChartCanvas></canvas>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Performance Metrics Chart -->
+        <mat-card class="chart-card" *ngIf="performanceChart">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>speed</mat-icon>
+              Performance Metrics
+            </mat-card-title>
+            <button mat-icon-button [matMenuTriggerFor]="perfChartMenu">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #perfChartMenu="matMenu">
+              <button mat-menu-item (click)="exportChart('performance', 'png')">
+                <mat-icon>image</mat-icon>
+                <span>Export as PNG</span>
+              </button>
+            </mat-menu>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="chart-container">
+              <canvas #performanceChartCanvas></canvas>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Team Analytics (Manager View) -->
+        <mat-card class="chart-card" *ngIf="teamAnalytics && currentUserRole === UserRole.MANAGER">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>groups</mat-icon>
+              Team Overview
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="team-stats">
+              <div class="team-stat">
+                <span class="stat-label">Total Members</span>
+                <span class="stat-value">{{ teamAnalytics.teamSize }}</span>
+              </div>
+              <div class="team-stat">
+                <span class="stat-label">Active Today</span>
+                <span class="stat-value">{{ teamAnalytics.activeToday }}</span>
+              </div>
+              <div class="team-stat">
+                <span class="stat-label">Avg Attendance</span>
+                <span class="stat-value">{{ teamAnalytics.teamAttendance }}%</span>
+              </div>
+              <div class="team-stat">
+                <span class="stat-label">Performance Score</span>
+                <span class="stat-value">{{ teamAnalytics.teamProductivity }}</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+      </div>
+
+      <!-- Right Column: AI Insights & Anomalies -->
+      <div class="insights-column">
+
+        <!-- AI Insights Panel -->
+        <mat-card class="insights-card">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon class="ai-icon">auto_awesome</mat-icon>
+              AI Insights
+            </mat-card-title>
+            <mat-chip class="insight-count">{{ aiInsights.length }}</mat-chip>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="insights-list" *ngIf="aiInsights.length > 0; else noInsights">
+              <div *ngFor="let insight of aiInsights" 
+                   class="insight-item"
+                   [ngClass]="getSeverityClass(insight.severity)"
+                   (click)="viewInsightDetails(insight)">
+                <div class="insight-header">
+                  <mat-icon [style.color]="getSeverityColor(insight.severity)">
+                    {{ getInsightTypeIcon(insight.insightType) }}
+                  </mat-icon>
+                  <mat-chip class="severity-chip" [style.background-color]="getSeverityColor(insight.severity)">
+                    {{ insight.severity }}
+                  </mat-chip>
+                </div>
+                <div class="insight-content">
+                  <h4>{{ insight.title }}</h4>
+                  <p>{{ insight.explanation }}</p>
+                  <div class="insight-meta">
+                    <span class="insight-date">{{ formatTimeAgo(insight.generatedAt) }}</span>
+                    <span class="insight-confidence">{{ insight.score }}% confidence</span>
+                  </div>
+                </div>
+                <button mat-icon-button class="insight-action" *ngIf="insight.actionable">
+                  <mat-icon>arrow_forward</mat-icon>
+                </button>
+              </div>
+            </div>
+            <ng-template #noInsights>
+              <div class="empty-state">
+                <mat-icon>insights</mat-icon>
+                <p>No AI insights available</p>
+              </div>
+            </ng-template>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Anomaly Detection Panel -->
+        <mat-card class="anomaly-card" *ngIf="anomalyData && canViewOrganizationInsights">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>warning</mat-icon>
+              Anomaly Detection
+            </mat-card-title>
+            <mat-chip class="anomaly-count">{{ anomalyData.summary.total }}</mat-chip>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="anomaly-summary">
+              <div class="anomaly-stat high">
+                <span class="count">{{ anomalyData.summary.high }}</span>
+                <span class="label">High</span>
+              </div>
+              <div class="anomaly-stat medium">
+                <span class="count">{{ anomalyData.summary.medium }}</span>
+                <span class="label">Medium</span>
+              </div>
+              <div class="anomaly-stat low">
+                <span class="count">{{ anomalyData.summary.low }}</span>
+                <span class="label">Low</span>
+              </div>
+            </div>
+
+            <div class="anomaly-list" *ngIf="anomalyData.anomalies && anomalyData.anomalies.length > 0">
+              <div *ngFor="let anomaly of anomalyData.anomalies.slice(0, 5)"
+                   class="anomaly-item"
+                   [ngClass]="getSeverityClass(anomaly.severity)"
+                   (click)="viewAnomalyDetails(anomaly)">
+                <div class="anomaly-header">
+                  <mat-icon>{{ anomaly.type === 'attendance' ? 'event_busy' : 'trending_down' }}</mat-icon>
+                  <span class="anomaly-type">{{ anomaly.type }}</span>
+                </div>
+                <p class="anomaly-description">{{ anomaly.explanation }}</p>
+                <span class="anomaly-date">{{ formatTimeAgo(anomaly.date) }}</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- System Health (Admin Only) -->
+        <mat-card class="system-health-card" *ngIf="systemHealth && canViewSystemHealth">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>monitor_heart</mat-icon>
+              System Health
+            </mat-card-title>
+            <mat-chip [class.status-healthy]="systemHealth.overallStatus === 'healthy'"
+                      [class.status-warning]="systemHealth.overallStatus === 'warning'"
+                      [class.status-critical]="systemHealth.overallStatus === 'critical'">
+              {{ systemHealth.overallStatus }}
+            </mat-chip>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="health-metrics">
+              <div class="health-metric">
+                <span class="metric-label">API Uptime</span>
+                <div class="metric-bar">
+                  <div class="metric-fill" [style.width.%]="systemHealth.apiUptime"></div>
+                </div>
+                <span class="metric-value">{{ systemHealth.apiUptime }}%</span>
+              </div>
+              <div class="health-metric">
+                <span class="metric-label">Database Health</span>
+                <div class="metric-bar">
+                  <div class="metric-fill" [style.width.%]="systemHealth.databaseHealth"></div>
+                </div>
+                <span class="metric-value">{{ systemHealth.databaseHealth }}%</span>
+              </div>
+              <div class="health-metric">
+                <span class="metric-label">Active Users</span>
+                <span class="metric-value">{{ systemHealth.activeUsers }}</span>
+              </div>
+              <div class="health-metric">
+                <span class="metric-label">Avg Response Time</span>
+                <span class="metric-value">{{ systemHealth.responseTime }}ms</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+      </div>
+
+    </div>
+
+    <!-- Department Comparison Details (HR/Admin) -->
+    <mat-card class="department-details-card" *ngIf="departmentComparison.length > 0 && canViewOrganizationInsights">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>business_center</mat-icon>
+          Department Performance Breakdown
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="department-table-container">
+          <table mat-table [dataSource]="departmentComparison" class="department-table">
+            
+            <!-- Department Column -->
+            <ng-container matColumnDef="department">
+              <th mat-header-cell *matHeaderCellDef>Department</th>
+              <td mat-cell *matCellDef="let dept">{{ dept.department }}</td>
+            </ng-container>
+
+            <!-- Employees Column -->
+            <ng-container matColumnDef="employees">
+              <th mat-header-cell *matHeaderCellDef>Employees</th>
+              <td mat-cell *matCellDef="let dept">{{ dept.employeeCount }}</td>
+            </ng-container>
+
+            <!-- Attendance Column -->
+            <ng-container matColumnDef="attendance">
+              <th mat-header-cell *matHeaderCellDef>Attendance</th>
+              <td mat-cell *matCellDef="let dept">
+                <div class="progress-cell">
+                  <span>{{ dept.attendanceRate }}%</span>
+                  <mat-progress-bar mode="determinate" [value]="dept.attendanceRate"></mat-progress-bar>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Productivity Column -->
+            <ng-container matColumnDef="productivity">
+              <th mat-header-cell *matHeaderCellDef>Productivity</th>
+              <td mat-cell *matCellDef="let dept">
+                <div class="progress-cell">
+                  <span>{{ dept.productivityScore }}%</span>
+                  <mat-progress-bar mode="determinate" [value]="dept.productivityScore"></mat-progress-bar>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Leave Rate Column -->
+            <ng-container matColumnDef="leaveRate">
+              <th mat-header-cell *matHeaderCellDef>Leave Rate</th>
+              <td mat-cell *matCellDef="let dept">{{ dept.leaveRate }}%</td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="['department', 'employees', 'attendance', 'productivity', 'leaveRate']"></tr>
+            <tr mat-row *matRowDef="let row; columns: ['department', 'employees', 'attendance', 'productivity', 'leaveRate'];" class="clickable-row" (click)="viewDepartmentDetails(row)"></tr>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+
+</div>

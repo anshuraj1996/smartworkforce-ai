@@ -1,0 +1,41 @@
+<div class="calendar-page">
+  <div class="calendar-header">
+    <button mat-icon-button (click)="previousMonth()"><mat-icon>chevron_left</mat-icon></button>
+    <h2>{{ monthLabel }}</h2>
+    <button mat-icon-button (click)="nextMonth()"><mat-icon>chevron_right</mat-icon></button>
+  </div>
+
+  <div class="legend">
+    <span class="legend-item status-present">Present</span>
+    <span class="legend-item status-late">Late</span>
+    <span class="legend-item status-absent">Absent</span>
+    <span class="legend-item status-work-from-home">WFH</span>
+    <span class="legend-item status-leave">Leave</span>
+    <span class="legend-item status-holiday">Holiday</span>
+    <span class="legend-item status-weekend">Weekend</span>
+  </div>
+
+  <div class="calendar-grid">
+    <div class="weekday-cell" *ngFor="let label of weekdayLabels">{{ label }}</div>
+    <div class="day-cell blank" *ngFor="let blank of leadingBlanks"></div>
+    <div
+      class="day-cell"
+      [ngClass]="statusClass(day.status)"
+      *ngFor="let day of days"
+      (click)="selectDay(day)">
+      <span class="day-number">{{ day.date | slice:8:10 }}</span>
+      <span class="day-status">{{ statusLabel(day.status) }}</span>
+    </div>
+  </div>
+
+  <mat-card class="detail-card" *ngIf="selectedDay">
+    <h3>{{ selectedDay.date }}</h3>
+    <p>Status: {{ statusLabel(selectedDay.status) }}</p>
+    <div *ngIf="selectedDay.detail">
+      <p *ngIf="selectedDay.detail.checkInTime">Check-in: {{ selectedDay.detail.checkInTime }}</p>
+      <p *ngIf="selectedDay.detail.checkOutTime">Check-out: {{ selectedDay.detail.checkOutTime }}</p>
+      <p *ngIf="selectedDay.detail.leaveType">Leave type: {{ selectedDay.detail.leaveType }}</p>
+      <p *ngIf="selectedDay.detail.reason">Reason: {{ selectedDay.detail.reason }}</p>
+    </div>
+  </mat-card>
+</div>

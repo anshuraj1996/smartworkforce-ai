@@ -1,0 +1,30 @@
+backend:
+  build:
+  env-file: ./backend/.env
+  environment:
+    REDIS_URL: redis://redis:6379
+    KAFKA_BROKER: kafka:9092
+  ports:
+    - "8000:8000"
+  depends_on:
+    redis:
+      condition: service_healthy
+    kafka:
+      condition: service_healthy
+    
+ai-anomaly:
+  build: ./ai-anomaly-service
+  env_file: ./ai-anomaly-service/.env
+  environment:
+    REDIS_URL: redis://redis:6379
+    KAFKA_BROKER: kafka:9092
+  depends_on:
+    kafka-topics-init
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend 
+

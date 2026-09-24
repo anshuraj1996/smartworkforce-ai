@@ -1,0 +1,79 @@
+.announcements-page {
+  max-width: 700px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.form-card {
+  padding: 16px;
+  margin-bottom: 16px;
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+.feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.feed-item {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  align-items: flex-start;
+
+  mat-icon:first-child {
+    color: rgba(0, 0, 0, 0.5);
+  }
+}
+
+.feed-content {
+  flex: 1;
+}
+
+.feed-title {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pin-icon {
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+  color: #f9a825;
+}
+
+.feed-body {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+  margin-top: 2px;
+}
+
+.type-birthday {
+  border-left: 3px solid #ec407a;
+}
+
+.type-new_joiner {
+  border-left: 3px solid #26a69a;
+}
+
+.type-announcement {
+  border-left: 3px solid #5c6bc0;
+}
+
+.empty-state {
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 14px;
+}

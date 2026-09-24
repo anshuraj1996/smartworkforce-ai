@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: demo-db
+
+spec:
+  clusterIP: None
+
+  selector:
+    app: demo-db
+
+  ports:
+    - port: 6379
+      targetPort: 6379

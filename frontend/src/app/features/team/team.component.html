@@ -1,0 +1,813 @@
+<!-- Team Management Page -->
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+  <!-- Header -->
+  <div class="bg-white shadow-soft border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-6">
+        <div>
+          <h1 class="page-title">
+            <mat-icon class="text-primary-600">groups</mat-icon>
+            Team Management
+          </h1>
+          <p class="text-gray-600 mt-1">
+            {{ canViewAllTeam ? 'Manage and monitor your entire organization' : 'View your team members' }}
+          </p>
+        </div>
+        <div class="flex items-center gap-4">
+          <!-- Role-based action buttons -->
+          <button *ngIf="canAddMember" 
+                  mat-raised-button 
+                  color="primary" 
+                  (click)="addNewMember()">
+            <mat-icon>person_add</mat-icon>
+            Add Member
+          </button>
+          <button mat-raised-button color="accent" (click)="exportTeamData()">
+            <mat-icon>file_download</mat-icon>
+            Export
+          </button>
+          <button mat-icon-button (click)="refreshData()" matTooltip="Refresh">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Team Statistics Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="stat-card bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="stat-number text-white text-4xl font-bold">{{ teamStats.totalMembers || 0 }}</div>
+            <div class="stat-label text-blue-100 font-medium">Total Members</div>
+          </div>
+          <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+            <mat-icon class="text-white text-2xl">groups</mat-icon>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card bg-gradient-to-r from-green-500 to-green-600 text-white border-0">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="stat-number text-white text-4xl font-bold">{{ teamStats.presentToday || 0 }}</div>
+            <div class="stat-label text-green-100 font-medium">Present Today</div>
+          </div>
+          <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+            <mat-icon class="text-white text-2xl">check_circle</mat-icon>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="stat-number text-white text-4xl font-bold">{{ teamStats.onLeave || 0 }}</div>
+            <div class="stat-label text-orange-100 font-medium">On Leave</div>
+          </div>
+          <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+            <mat-icon class="text-white text-2xl">beach_access</mat-icon>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="stat-number text-white text-4xl font-bold">{{ teamStats.avgAttendance || 0 }}%</div>
+            <div class="stat-label text-purple-100 font-medium">Avg Attendance</div>
+          </div>
+          <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+            <mat-icon class="text-white text-2xl">trending_up</mat-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="card mb-8">
+      <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+        <mat-icon class="text-primary-600">filter_list</mat-icon>
+        Filters
+      </h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Search team members</mat-label>
+          <input matInput 
+                 [formControl]="searchControl"
+                 placeholder="Name, email, or department">
+          <mat-icon matPrefix>search</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Department</mat-label>
+          <mat-select [(value)]="selectedDepartment" (selectionChange)="applyFilters()">
+            <mat-option value="">All Departments</mat-option>
+            <mat-option *ngFor="let dept of departments" [value]="dept">
+              {{ dept }}
+            </mat-option>
+          </mat-select>
+          <mat-icon matPrefix>business</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Role</mat-label>
+          <mat-select [(value)]="selectedRole" (selectionChange)="applyFilters()">
+            <mat-option value="">All Roles</mat-option>
+            <mat-option value="EMPLOYEE">Employee</mat-option>
+            <mat-option value="MANAGER">Manager</mat-option>
+            <mat-option value="HR">HR</mat-option>
+            <mat-option value="ADMIN">Admin</mat-option>
+          </mat-select>
+          <mat-icon matPrefix>badge</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Status</mat-label>
+          <mat-select [(value)]="selectedStatus" (selectionChange)="applyFilters()">
+            <mat-option value="">All Status</mat-option>
+            <mat-option value="Active">Active</mat-option>
+            <mat-option value="Inactive">Inactive</mat-option>
+            <mat-option value="On Leave">On Leave</mat-option>
+          </mat-select>
+          <mat-icon matPrefix>toggle_on</mat-icon>
+        </mat-form-field>
+
+        <div class="flex items-center gap-2">
+          <button mat-raised-button color="primary" (click)="applyFilters()" class="flex-1">
+            <mat-icon>filter_list</mat-icon>
+            Filter
+          </button>
+          <button mat-stroked-button (click)="clearFilters()">
+            <mat-icon>clear</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Members List -->
+    <div class="card">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <mat-icon class="text-primary-600">group</mat-icon>
+            Team Members
+            <span class="text-sm font-normal text-gray-600">({{ filteredMembers.length }})</span>
+          </h3>
+          <p class="text-sm text-gray-600 mt-1" *ngIf="selectedMembers.length > 0">
+            {{ selectedMembers.length }} selected
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button mat-icon-button [matMenuTriggerFor]="viewMenu" matTooltip="View Options">
+            <mat-icon>view_module</mat-icon>
+          </button>
+          <mat-menu #viewMenu="matMenu">
+            <button mat-menu-item (click)="setViewMode('grid')">
+              <mat-icon>view_module</mat-icon>
+              Grid View
+            </button>
+            <button mat-menu-item (click)="setViewMode('list')">
+              <mat-icon>view_list</mat-icon>
+              List View
+            </button>
+          </mat-menu>
+        </div>
+      </div>
+
+      <!-- Grid View -->
+      <div *ngIf="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div *ngFor="let member of filteredMembers" 
+             class="member-card bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-all duration-200">
+          <!-- Member Header -->
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <div class="relative">
+                <div class="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-primary-400 to-primary-600">
+                  <img *ngIf="member.avatar" 
+                       [src]="member.avatar" 
+                       [alt]="member.name"
+                       class="w-full h-full object-cover">
+                  <div *ngIf="!member.avatar" 
+                       class="w-full h-full flex items-center justify-center text-white text-xl font-bold">
+                    {{ getInitials(member.name) }}
+                  </div>
+                </div>
+                <div class="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white"
+                     [ngClass]="{
+                       'bg-green-500': member.status === 'Active',
+                       'bg-gray-400': member.status === 'Inactive',
+                       'bg-orange-500': member.status === 'On Leave'
+                     }">
+                </div>
+              </div>
+              <div>
+                <h4 class="font-semibold text-gray-900">{{ member.name }}</h4>
+                <p class="text-sm text-gray-600">{{ member.designation }}</p>
+              </div>
+            </div>
+            <button *ngIf="canBulkOperations" 
+                    mat-icon-button 
+                    (click)="toggleMemberSelection(member)"
+                    [color]="isMemberSelected(member) ? 'primary' : ''">
+              <mat-icon>{{ isMemberSelected(member) ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
+            </button>
+          </div>
+
+          <!-- Member Info -->
+          <div class="space-y-2 mb-4">
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+              <mat-icon class="text-xs">email</mat-icon>
+              <span>{{ member.email }}</span>
+            </div>
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+              <mat-icon class="text-xs">business</mat-icon>
+              <span>{{ member.department }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-1 rounded-full text-xs font-medium"
+                    [ngClass]="getRoleBadgeColor(member.role).bg + ' ' + getRoleBadgeColor(member.role).text">
+                {{ member.role }}
+              </span>
+              <span class="px-2 py-1 rounded-full text-xs font-medium"
+                    [ngClass]="getStatusBadgeColor(member.status).bg + ' ' + getStatusBadgeColor(member.status).text">
+                {{ member.status }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Member Stats -->
+          <div class="grid grid-cols-2 gap-4 mb-4 pt-4 border-t border-gray-200">
+            <div>
+              <div class="text-2xl font-bold text-gray-900">{{ member.attendancePercentage || 0 }}%</div>
+              <div class="text-xs text-gray-600">Attendance</div>
+            </div>
+            <div>
+              <div class="text-sm text-gray-900">{{ formatLastSeen(member.lastLoginAt) }}</div>
+              <div class="text-xs text-gray-600">Last Seen</div>
+            </div>
+          </div>
+
+          <!-- Member Actions -->
+          <div class="flex gap-2">
+            <button mat-stroked-button 
+                    class="flex-1" 
+                    (click)="viewMemberProfile(member)">
+              <mat-icon>visibility</mat-icon>
+              View
+            </button>
+            <button *ngIf="canEditMember" 
+                    mat-stroked-button 
+                    color="primary" 
+                    class="flex-1"
+                    (click)="editMember(member)">
+              <mat-icon>edit</mat-icon>
+              Edit
+            </button>
+            <button mat-icon-button [matMenuTriggerFor]="memberMenu">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #memberMenu="matMenu">
+              <button mat-menu-item (click)="viewAttendance(member)">
+                <mat-icon>schedule</mat-icon>
+                View Attendance
+              </button>
+              <button mat-menu-item (click)="viewLeaveHistory(member)">
+                <mat-icon>event_available</mat-icon>
+                Leave History
+              </button>
+              <button mat-menu-item (click)="sendMessage(member)">
+                <mat-icon>message</mat-icon>
+                Send Message
+              </button>
+              <mat-divider *ngIf="canDeactivateMember"></mat-divider>
+              <button *ngIf="canDeactivateMember && member.isActive" 
+                      mat-menu-item 
+                      (click)="deactivateMember(member)"
+                      class="text-red-600">
+                <mat-icon class="text-red-600">block</mat-icon>
+                Deactivate
+              </button>
+              <button *ngIf="canDeactivateMember && !member.isActive" 
+                      mat-menu-item 
+                      (click)="activateMember(member)"
+                      class="text-green-600">
+                <mat-icon class="text-green-600">check_circle</mat-icon>
+                Activate
+              </button>
+            </mat-menu>
+          </div>
+        </div>
+      </div>
+
+      <!-- List View (Table) -->
+      <div *ngIf="viewMode === 'list'" class="overflow-x-auto">
+        <table mat-table [dataSource]="filteredMembers" class="w-full">
+          <!-- Selection Column -->
+          <ng-container matColumnDef="select" *ngIf="canBulkOperations">
+            <th mat-header-cell *matHeaderCellDef>
+              <mat-checkbox (change)="$event.checked ? selectAll() : clearSelection()"></mat-checkbox>
+            </th>
+            <td mat-cell *matCellDef="let member">
+              <mat-checkbox [checked]="isMemberSelected(member)"
+                            (change)="toggleMemberSelection(member)"></mat-checkbox>
+            </td>
+          </ng-container>
+
+          <!-- Member Column -->
+          <ng-container matColumnDef="member">
+            <th mat-header-cell *matHeaderCellDef>Member</th>
+            <td mat-cell *matCellDef="let member">
+              <div class="flex items-center gap-3 py-2">
+                <div class="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-primary-400 to-primary-600">
+                  <img *ngIf="member.avatar" [src]="member.avatar" [alt]="member.name" class="w-full h-full object-cover">
+                  <div *ngIf="!member.avatar" class="w-full h-full flex items-center justify-center text-white font-bold text-sm">
+                    {{ getInitials(member.name) }}
+                  </div>
+                </div>
+                <div>
+                  <div class="font-medium text-gray-900">{{ member.name }}</div>
+                  <div class="text-sm text-gray-600">{{ member.email }}</div>
+                </div>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Role Column -->
+          <ng-container matColumnDef="role">
+            <th mat-header-cell *matHeaderCellDef>Role</th>
+            <td mat-cell *matCellDef="let member">
+              <span class="px-3 py-1 rounded-full text-xs font-medium"
+                    [ngClass]="getRoleBadgeColor(member.role).bg + ' ' + getRoleBadgeColor(member.role).text">
+                {{ member.role }}
+              </span>
+            </td>
+          </ng-container>
+
+          <!-- Department Column -->
+          <ng-container matColumnDef="department">
+            <th mat-header-cell *matHeaderCellDef>Department</th>
+            <td mat-cell *matCellDef="let member">{{ member.department }}</td>
+          </ng-container>
+
+          <!-- Status Column -->
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let member">
+              <span class="px-3 py-1 rounded-full text-xs font-medium"
+                    [ngClass]="getStatusBadgeColor(member.status).bg + ' ' + getStatusBadgeColor(member.status).text">
+                {{ member.status }}
+              </span>
+            </td>
+          </ng-container>
+
+          <!-- Attendance Column -->
+          <ng-container matColumnDef="attendance">
+            <th mat-header-cell *matHeaderCellDef>Attendance</th>
+            <td mat-cell *matCellDef="let member">
+              <div class="flex items-center gap-2">
+                <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div class="h-full bg-green-500" [style.width.%]="member.attendancePercentage || 0"></div>
+                </div>
+                <span class="text-sm font-medium text-gray-700">{{ member.attendancePercentage || 0 }}%</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Last Seen Column -->
+          <ng-container matColumnDef="lastSeen">
+            <th mat-header-cell *matHeaderCellDef>Last Seen</th>
+            <td mat-cell *matCellDef="let member">
+              <span class="text-sm text-gray-600">{{ formatLastSeen(member.lastLoginAt) }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Actions Column -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let member">
+              <button mat-icon-button (click)="viewMemberProfile(member)" matTooltip="View Profile">
+                <mat-icon>visibility</mat-icon>
+              </button>
+              <button *ngIf="canEditMember" mat-icon-button (click)="editMember(member)" matTooltip="Edit">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button [matMenuTriggerFor]="rowMenu" matTooltip="More">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #rowMenu="matMenu">
+                <button mat-menu-item (click)="viewAttendance(member)">
+                  <mat-icon>schedule</mat-icon>
+                  View Attendance
+                </button>
+                <button mat-menu-item (click)="viewLeaveHistory(member)">
+                  <mat-icon>event_available</mat-icon>
+                  Leave History
+                </button>
+                <button mat-menu-item (click)="sendMessage(member)">
+                  <mat-icon>message</mat-icon>
+                  Send Message
+                </button>
+              </mat-menu>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="canBulkOperations ? ['select'].concat(displayedColumns) : displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: canBulkOperations ? ['select'].concat(displayedColumns) : displayedColumns;"></tr>
+        </table>
+
+        <!-- Pagination -->
+        <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" 
+                       showFirstLastButtons
+                       class="border-t border-gray-200">
+        </mat-paginator>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="filteredMembers.length === 0 && !isLoading" class="text-center py-12">
+        <mat-icon class="text-gray-300 text-6xl">group</mat-icon>
+        <p class="text-gray-500 mt-4">No team members found</p>
+        <p class="text-gray-400 text-sm">Try adjusting your filters</p>
+      </div>
+    </div>
+
+    <!-- Bulk Actions Panel -->
+    <div *ngIf="selectedMembers.length > 0 && canBulkOperations" 
+         class="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
+      <div class="card shadow-xl border-2 border-primary-500">
+        <div class="flex items-center gap-6">
+          <div class="flex items-center gap-2">
+            <mat-icon class="text-primary-600">info</mat-icon>
+            <span class="font-medium text-gray-900">{{ selectedMembers.length }} member(s) selected</span>
+          </div>
+          <div class="flex gap-2">
+            <button mat-raised-button color="primary" (click)="sendBulkMessage()">
+              <mat-icon>message</mat-icon>
+              Message
+            </button>
+            <button mat-raised-button color="accent" (click)="exportSelectedMembers()">
+              <mat-icon>file_download</mat-icon>
+              Export
+            </button>
+            <button mat-raised-button (click)="bulkTransferDepartment()">
+              <mat-icon>swap_horiz</mat-icon>
+              Transfer
+            </button>
+            <button mat-raised-button color="warn" (click)="bulkDeactivate()">
+              <mat-icon>block</mat-icon>
+              Deactivate
+            </button>
+            <button mat-icon-button (click)="clearSelection()">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div *ngIf="isLoading" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg p-8 flex flex-col items-center gap-4">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p class="text-gray-700 font-medium">Loading team data...</p>
+  </div>
+</div>
+
+  <!-- Team Statistics Overview -->
+  <div class="stats-section">
+    <div class="stats-grid">
+      <mat-card class="stat-card total-members">
+        <mat-card-content>
+          <div class="stat-icon">
+            <mat-icon>groups</mat-icon>
+          </div>
+          <div class="stat-info">
+            <h3>{{ teamStats.totalMembers }}</h3>
+            <p>Total Members</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card present-today">
+        <mat-card-content>
+          <div class="stat-icon">
+            <mat-icon>check_circle</mat-icon>
+          </div>
+          <div class="stat-info">
+            <h3>{{ teamStats.presentToday }}</h3>
+            <p>Present Today</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card on-leave">
+        <mat-card-content>
+          <div class="stat-icon">
+            <mat-icon>beach_access</mat-icon>
+          </div>
+          <div class="stat-info">
+            <h3>{{ teamStats.onLeave }}</h3>
+            <p>On Leave</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card avg-attendance">
+        <mat-card-content>
+          <div class="stat-icon">
+            <mat-icon>trending_up</mat-icon>
+          </div>
+          <div class="stat-info">
+            <h3>{{ teamStats.avgAttendance }}%</h3>
+            <p>Avg Attendance</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- Filters and Search -->
+  <div class="filters-section">
+    <mat-card class="filters-card">
+      <mat-card-content>
+        <div class="filters-row">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search team members</mat-label>
+            <input matInput placeholder="Search by name, email, or department" [(ngModel)]="searchTerm">
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Department</mat-label>
+            <mat-select [(value)]="selectedDepartment">
+              <mat-option value="">All Departments</mat-option>
+              <mat-option *ngFor="let dept of departments" [value]="dept">
+                {{ dept }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Role</mat-label>
+            <mat-select [(value)]="selectedRole">
+              <mat-option value="">All Roles</mat-option>
+              <mat-option value="EMPLOYEE">Employee</mat-option>
+              <mat-option value="MANAGER">Manager</mat-option>
+              <mat-option value="HR">HR</mat-option>
+              <mat-option value="ADMIN">Admin</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Status</mat-label>
+            <mat-select [(value)]="selectedStatus">
+              <mat-option value="">All Status</mat-option>
+              <mat-option value="Active">Active</mat-option>
+              <mat-option value="Inactive">Inactive</mat-option>
+              <mat-option value="On Leave">On Leave</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <button mat-raised-button color="primary" (click)="applyFilters()">
+            <mat-icon>filter_list</mat-icon>
+            Filter
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Team Members List -->
+  <div class="members-section">
+    <mat-card class="members-card">
+      <mat-card-header>
+        <mat-card-title>Team Members ({{ filteredMembers.length }})</mat-card-title>
+        <div class="header-actions">
+          <button mat-icon-button [matMenuTriggerFor]="viewMenu">
+            <mat-icon>view_module</mat-icon>
+          </button>
+          <mat-menu #viewMenu="matMenu">
+            <button mat-menu-item (click)="setViewMode('grid')">
+              <mat-icon>view_module</mat-icon>
+              Grid View
+            </button>
+            <button mat-menu-item (click)="setViewMode('list')">
+              <mat-icon>view_list</mat-icon>
+              List View
+            </button>
+          </mat-menu>
+        </div>
+      </mat-card-header>
+
+      <mat-card-content>
+        <!-- Grid View -->
+        <div *ngIf="viewMode === 'grid'" class="members-grid">
+          <div *ngFor="let member of filteredMembers" class="member-card">
+            <mat-card class="member-info-card">
+              <div class="member-header">
+                <div class="member-avatar">
+                  <img *ngIf="member.avatar" [src]="member.avatar" [alt]="member.name">
+                  <div *ngIf="!member.avatar" class="avatar-placeholder">
+                    {{ getInitials(member.name) }}
+                  </div>
+                </div>
+                <div class="member-status" [ngClass]="getStatusClass(member.status)">
+                  {{ member.status }}
+                </div>
+              </div>
+
+              <div class="member-info">
+                <h3 class="member-name">{{ member.name }}</h3>
+                <p class="member-email">{{ member.email }}</p>
+                <div class="member-details">
+                  <span class="member-role" [ngClass]="getRoleClass(member.role)">
+                    {{ member.role }}
+                  </span>
+                  <span class="member-department">{{ member.department }}</span>
+                </div>
+              </div>
+
+              <div class="member-stats">
+                <div class="stat-item">
+                  <span class="stat-label">Attendance</span>
+                  <span class="stat-value">{{ member.attendancePercentage }}%</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Last Seen</span>
+                  <span class="stat-value">{{ formatLastSeen(member.lastLoginAt) }}</span>
+                </div>
+              </div>
+
+              <div class="member-actions">
+                <button mat-icon-button (click)="viewMemberProfile(member)">
+                  <mat-icon>visibility</mat-icon>
+                </button>
+                <button mat-icon-button (click)="editMember(member)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button [matMenuTriggerFor]="memberMenu">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #memberMenu="matMenu">
+                  <button mat-menu-item (click)="viewAttendance(member)">
+                    <mat-icon>schedule</mat-icon>
+                    View Attendance
+                  </button>
+                  <button mat-menu-item (click)="viewLeaveHistory(member)">
+                    <mat-icon>event_available</mat-icon>
+                    Leave History
+                  </button>
+                  <button mat-menu-item (click)="sendMessage(member)">
+                    <mat-icon>message</mat-icon>
+                    Send Message
+                  </button>
+                  <mat-divider></mat-divider>
+                  <button mat-menu-item (click)="deactivateMember(member)" class="danger-action">
+                    <mat-icon>block</mat-icon>
+                    Deactivate
+                  </button>
+                </mat-menu>
+              </div>
+            </mat-card>
+          </div>
+        </div>
+
+        <!-- List View -->
+        <div *ngIf="viewMode === 'list'" class="members-table">
+          <table mat-table [dataSource]="filteredMembers" class="team-table">
+            <!-- Avatar and Name Column -->
+            <ng-container matColumnDef="member">
+              <th mat-header-cell *matHeaderCellDef>Member</th>
+              <td mat-cell *matCellDef="let member" class="member-cell">
+                <div class="member-info-inline">
+                  <div class="member-avatar-small">
+                    <img *ngIf="member.avatar" [src]="member.avatar" [alt]="member.name">
+                    <div *ngIf="!member.avatar" class="avatar-placeholder-small">
+                      {{ getInitials(member.name) }}
+                    </div>
+                  </div>
+                  <div class="member-details-inline">
+                    <span class="member-name-inline">{{ member.name }}</span>
+                    <span class="member-email-inline">{{ member.email }}</span>
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Role Column -->
+            <ng-container matColumnDef="role">
+              <th mat-header-cell *matHeaderCellDef>Role</th>
+              <td mat-cell *matCellDef="let member">
+                <span class="role-badge" [ngClass]="getRoleClass(member.role)">
+                  {{ member.role }}
+                </span>
+              </td>
+            </ng-container>
+
+            <!-- Department Column -->
+            <ng-container matColumnDef="department">
+              <th mat-header-cell *matHeaderCellDef>Department</th>
+              <td mat-cell *matCellDef="let member">{{ member.department }}</td>
+            </ng-container>
+
+            <!-- Status Column -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let member">
+                <span class="status-badge" [ngClass]="getStatusClass(member.status)">
+                  {{ member.status }}
+                </span>
+              </td>
+            </ng-container>
+
+            <!-- Attendance Column -->
+            <ng-container matColumnDef="attendance">
+              <th mat-header-cell *matHeaderCellDef>Attendance</th>
+              <td mat-cell *matCellDef="let member">
+                <div class="attendance-progress">
+                  <mat-progress-bar mode="determinate" [value]="member.attendancePercentage"></mat-progress-bar>
+                  <span class="attendance-text">{{ member.attendancePercentage }}%</span>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Last Seen Column -->
+            <ng-container matColumnDef="lastSeen">
+              <th mat-header-cell *matHeaderCellDef>Last Seen</th>
+              <td mat-cell *matCellDef="let member">{{ formatLastSeen(member.lastLoginAt) }}</td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let member">
+                <button mat-icon-button (click)="viewMemberProfile(member)">
+                  <mat-icon>visibility</mat-icon>
+                </button>
+                <button mat-icon-button (click)="editMember(member)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button [matMenuTriggerFor]="rowMenu">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #rowMenu="matMenu">
+                  <button mat-menu-item (click)="viewAttendance(member)">
+                    <mat-icon>schedule</mat-icon>
+                    View Attendance
+                  </button>
+                  <button mat-menu-item (click)="viewLeaveHistory(member)">
+                    <mat-icon>event_available</mat-icon>
+                    Leave History
+                  </button>
+                </mat-menu>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+
+          <!-- Pagination -->
+          <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons></mat-paginator>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Quick Actions Panel -->
+  <div class="quick-actions-section" *ngIf="selectedMembers.length > 0">
+    <mat-card class="quick-actions-card">
+      <mat-card-content>
+        <div class="bulk-actions">
+          <span class="selection-info">{{ selectedMembers.length }} members selected</span>
+          <div class="bulk-action-buttons">
+            <button mat-raised-button color="primary" (click)="sendBulkMessage()">
+              <mat-icon>message</mat-icon>
+              Send Message
+            </button>
+            <button mat-raised-button color="accent" (click)="exportSelectedMembers()">
+              <mat-icon>file_download</mat-icon>
+              Export Selected
+            </button>
+            <button mat-raised-button color="warn" (click)="bulkDeactivate()">
+              <mat-icon>block</mat-icon>
+              Deactivate Selected
+            </button>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+<!-- Loading Spinner -->
+<div *ngIf="isLoading" class="loading-overlay">
+  <mat-spinner diameter="50"></mat-spinner>
+  <p>Loading team data...</p>
+</div>

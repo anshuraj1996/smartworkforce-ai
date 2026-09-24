@@ -1,0 +1,308 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+@import '@angular/material/prebuilt-themes/indigo-pink.css';
+
+/* Global Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Roboto', sans-serif;
+  @apply bg-gray-50 text-gray-900;
+}
+
+/* Custom component classes */
+@layer components {
+  .gradient-bg {
+    @apply bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700;
+  }
+  
+  .gradient-bg-light {
+    @apply bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50;
+  }
+  
+  .card {
+    @apply bg-white rounded-xl shadow-soft border border-gray-100 p-6;
+  }
+  
+  .card-hover {
+    @apply card transition-all duration-300 hover:shadow-medium hover:-translate-y-1;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
+  }
+  
+  .btn-success {
+    @apply bg-success-600 hover:bg-success-700 text-white font-medium py-2.5 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-success-500 focus:ring-offset-2;
+  }
+  
+  .btn-warning {
+    @apply bg-warning-500 hover:bg-warning-600 text-white font-medium py-2.5 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-warning-400 focus:ring-offset-2;
+  }
+  
+  .btn-danger {
+    @apply bg-danger-600 hover:bg-danger-700 text-white font-medium py-2.5 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-danger-500 focus:ring-offset-2;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-200;
+  }
+  
+  .stat-card {
+    @apply bg-white rounded-xl p-6 shadow-soft border border-gray-100;
+  }
+  
+  .stat-number {
+    @apply text-3xl font-bold text-primary-600;
+  }
+  
+  .stat-label {
+    @apply text-sm font-medium text-gray-500 mt-1;
+  }
+  
+  .page-title {
+    @apply text-2xl font-bold text-gray-900 mb-8 flex items-center gap-3;
+  }
+  
+  .status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .status-present {
+    @apply status-badge bg-success-100 text-success-800;
+  }
+  
+  .status-late {
+    @apply status-badge bg-warning-100 text-warning-800;
+  }
+  
+  .status-absent {
+    @apply status-badge bg-danger-100 text-danger-800;
+  }
+  
+  .sidebar-nav {
+    @apply w-64 bg-white border-r border-gray-200 min-h-screen;
+  }
+  
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-200 cursor-pointer;
+  }
+  
+  .nav-item.active {
+    @apply bg-primary-50 text-primary-700 border-r-2 border-primary-600;
+  }
+  
+  .glassmorphism {
+    @apply bg-white/80 backdrop-blur-md border border-white/20;
+  }
+  
+  .loading-skeleton {
+    @apply animate-pulse bg-gray-200 rounded;
+  }
+}
+
+/* Material Design overrides with Tailwind */
+.mat-mdc-card {
+  @apply border border-gray-100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.mat-mdc-button.mat-primary {
+  background-color: rgb(37 99 235) !important;
+}
+
+.mat-mdc-button.mat-primary:hover {
+  background-color: rgb(29 78 216) !important;
+}
+
+.mat-mdc-raised-button.mat-accent {
+  background-color: rgb(219 39 119) !important;
+}
+
+.mat-mdc-raised-button.mat-accent:hover {
+  background-color: rgb(190 24 93) !important;
+}
+
+.mat-mdc-form-field {
+  @apply w-full;
+}
+
+.mat-mdc-form-field .mat-mdc-text-field-wrapper {
+  border-radius: 0.5rem !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+/* Animations */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.pulse-subtle {
+  animation: pulse-subtle 2s infinite;
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  .sidebar-nav {
+    @apply w-full;
+  }
+}
+
+/* Dark mode support (future enhancement) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-friendly {
+    @apply text-black bg-white;
+  }
+}
+
+/* Dark Theme Styles */
+.dark-theme {
+  background-color: #121212 !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .mat-toolbar {
+  background-color: #1e1e1e !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .mat-sidenav {
+  background-color: #1e1e1e !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .mat-sidenav-container {
+  background-color: #121212 !important;
+}
+
+.dark-theme .mat-nav-list .mat-list-item {
+  color: #ffffff !important;
+}
+
+.dark-theme .mat-nav-list .mat-list-item:hover {
+  background-color: #2d2d2d !important;
+}
+
+.dark-theme .mat-nav-list .mat-list-item.active {
+  background-color: #1976d2 !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .mat-nav-list .mat-list-item mat-icon {
+  color: #ffffff !important;
+}
+
+.dark-theme .mat-nav-list .mat-list-item.active mat-icon {
+  color: #ffffff !important;
+}
+
+.dark-theme .card {
+  background-color: #1e1e1e !important;
+  color: #ffffff !important;
+  border: 1px solid #333 !important;
+}
+
+.dark-theme .stat-card {
+  background-color: #1e1e1e !important;
+  color: #ffffff !important;
+  border: 1px solid #333 !important;
+}
+
+.dark-theme .text-gray-600 {
+  color: #b0b0b0 !important;
+}
+
+.dark-theme .text-gray-900 {
+  color: #ffffff !important;
+}
+
+.dark-theme .bg-white {
+  background-color: #1e1e1e !important;
+}
+
+.dark-theme .border-gray-200 {
+  border-color: #333 !important;
+}
+
+.dark-theme .bg-gray-50 {
+  background-color: #121212 !important;
+}
+
+.dark-theme .bg-gradient-to-br {
+  background: linear-gradient(to bottom right, #1e1e1e, #2d2d2d) !important;
+}
+
+/* Dialog dark theme */
+.dark-theme .mat-mdc-dialog-container {
+  background-color: #1e1e1e !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .mat-mdc-dialog-title {
+  color: #ffffff !important;
+}
+
+.dark-theme .mat-mdc-dialog-content {
+  color: #ffffff !important;
+}
+
+.dark-theme .mat-mdc-list-item {
+  color: #ffffff !important;
+}
+
+.dark-theme .mat-mdc-list-item .mat-mdc-list-item-title {
+  color: #ffffff !important;
+}
+
+.dark-theme .mat-mdc-list-item .mat-mdc-list-item-line {
+  color: #b0b0b0 !important;
+}
+
+/* Light Theme Styles */
+.light-theme {
+  background-color: #ffffff;
+  color: #000000;
+}

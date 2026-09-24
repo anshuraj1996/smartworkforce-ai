@@ -1,0 +1,118 @@
+.calendar-page {
+  max-width: 900px;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+
+  h2 {
+    margin: 0;
+    min-width: 200px;
+    text-align: center;
+  }
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.legend-item {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.weekday-cell {
+  text-align: center;
+  font-weight: 600;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+  padding-bottom: 4px;
+}
+
+.day-cell {
+  min-height: 64px;
+  border-radius: 6px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  border: 1px solid #e0e0e0;
+
+  &.blank {
+    border: none;
+    cursor: default;
+  }
+}
+
+.day-number {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.day-status {
+  font-size: 11px;
+}
+
+.status-present, .day-cell.status-present {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-late, .day-cell.status-late {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.status-absent, .day-cell.status-absent {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.status-half-day, .day-cell.status-half-day {
+  background: #fff8e1;
+  color: #f9a825;
+}
+
+.status-work-from-home, .day-cell.status-work-from-home {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.status-leave, .day-cell.status-leave {
+  background: #f3e5f5;
+  color: #6a1b9a;
+}
+
+.status-holiday, .day-cell.status-holiday {
+  background: #ede7f6;
+  color: #4527a0;
+}
+
+.status-weekend, .day-cell.status-weekend {
+  background: #fafafa;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.status-upcoming, .day-cell.status-upcoming {
+  background: #ffffff;
+}
+
+.detail-card {
+  margin-top: 16px;
+  padding: 16px;
+  max-width: 320px;
+}

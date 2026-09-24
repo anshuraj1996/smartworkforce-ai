@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-demo-app
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-demo-app
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-demo-app
+    spec:
+      containers:
+        - name: demo-app
+          image: busybox
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "echo DEMO_MESSAGE={{ .Values.message }}; sleep 3600"]

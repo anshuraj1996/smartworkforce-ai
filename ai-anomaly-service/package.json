@@ -1,0 +1,17 @@
+{
+  "name": "smartworkforce-ai-anomaly-service",
+  "version": "1.0.0",
+  "description": "Standalone anomaly-detection microservice for SmartWorkforce AI - consumes attendance events from Kafka and persists AI insights independently of the main backend",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "kafkajs": "^2.2.4",
+    "pg": "^8.11.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

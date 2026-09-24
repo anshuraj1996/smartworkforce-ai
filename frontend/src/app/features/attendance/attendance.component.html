@@ -1,0 +1,240 @@
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+  <!-- Header -->
+  <div class="bg-white shadow-soft border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-6">
+        <div>
+          <h1 class="page-title">
+            <mat-icon class="text-blue-600">access_time</mat-icon>
+            Attendance Tracking
+          </h1>
+          <p class="text-gray-600 mt-1" *ngIf="isEmployee">Track your daily attendance and work hours</p>
+          <p class="text-gray-600 mt-1" *ngIf="!isEmployee">Monitor team attendance and productivity</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="text-right">
+            <p class="text-sm text-gray-600">{{ currentDate | date:'fullDate' }}</p>
+            <p class="text-lg font-semibold text-gray-900">{{ currentTime | date:'shortTime' }}</p>
+          </div>
+          <div class="flex gap-2" *ngIf="isEmployee">
+            <button mat-raised-button color="primary" (click)="checkIn()" 
+                    [disabled]="todayAttendance?.checkInTime && !todayAttendance?.checkOutTime">
+              <mat-icon>login</mat-icon>
+              Check In
+            </button>
+            <button mat-raised-button color="accent" (click)="checkOut()" 
+                    [disabled]="!todayAttendance?.checkInTime || todayAttendance?.checkOutTime">
+              <mat-icon>logout</mat-icon>
+              Check Out
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Today's Status Card for Employees -->
+    <div class="card mb-8" *ngIf="isEmployee">
+      <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+        <mat-icon class="text-primary-600">today</mat-icon>
+        Today's Status
+      </h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="stat-card" [class]="getStatusCardClass()">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="stat-number text-2xl">{{ getStatusText() }}</div>
+              <div class="stat-label">Current Status</div>
+            </div>
+            <mat-icon class="text-2xl" [class]="getStatusIconClass()">{{ getStatusIcon() }}</mat-icon>
+          </div>
+        </div>
+        
+        <div class="stat-card bg-blue-50 border-blue-200">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="stat-number text-blue-600 text-2xl">
+                {{ todayAttendance?.checkInTime || '--:--' }}
+              </div>
+              <div class="stat-label text-blue-600">Check In</div>
+            </div>
+            <mat-icon class="text-blue-500 text-2xl">login</mat-icon>
+          </div>
+        </div>
+        
+        <div class="stat-card bg-purple-50 border-purple-200">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="stat-number text-purple-600 text-2xl">
+                {{ todayAttendance?.checkOutTime || '--:--' }}
+              </div>
+              <div class="stat-label text-purple-600">Check Out</div>
+            </div>
+            <mat-icon class="text-purple-500 text-2xl">logout</mat-icon>
+          </div>
+        </div>
+        
+        <div class="stat-card bg-green-50 border-green-200">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="stat-number text-green-600 text-2xl">{{ getTotalWorkHours() }}</div>
+              <div class="stat-label text-green-600">Hours Worked</div>
+            </div>
+            <mat-icon class="text-green-500 text-2xl">schedule</mat-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Cards for Managers/HR -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" *ngIf="!isEmployee">
+      <div class="stat-card bg-gradient-to-r from-green-500 to-green-600 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="stat-number text-white text-3xl font-bold">{{ stats.presentToday }}</div>
+            <div class="stat-label text-green-100">Present Today</div>
+          </div>
+          <mat-icon class="text-white text-2xl">check_circle</mat-icon>
+        </div>
+      </div>
+      
+      <div class="stat-card bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="stat-number text-white text-3xl font-bold">{{ stats.lateToday }}</div>
+            <div class="stat-label text-orange-100">Late Today</div>
+          </div>
+          <mat-icon class="text-white text-2xl">schedule</mat-icon>
+        </div>
+      </div>
+      
+      <div class="stat-card bg-gradient-to-r from-red-500 to-red-600 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="stat-number text-white text-3xl font-bold">{{ stats.absentToday }}</div>
+            <div class="stat-label text-red-100">Absent Today</div>
+          </div>
+          <mat-icon class="text-white text-2xl">cancel</mat-icon>
+        </div>
+      </div>
+      
+      <div class="stat-card bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="stat-number text-white text-3xl font-bold">{{ stats.avgWorkHours }}</div>
+            <div class="stat-label text-blue-100">Avg Work Hours</div>
+          </div>
+          <mat-icon class="text-white text-2xl">hourglass_empty</mat-icon>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attendance Records Table -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <mat-icon class="text-primary-600">list</mat-icon>
+          {{ isEmployee ? 'My Attendance Records' : 'Team Attendance Records' }}
+        </h3>
+        
+        <div class="flex items-center gap-2">
+          <mat-form-field appearance="outline" class="w-32">
+            <mat-label>Show Last</mat-label>
+            <mat-select [(value)]="selectedPeriod" (selectionChange)="filterRecords()">
+              <mat-option value="7">7 Days</mat-option>
+              <mat-option value="30">30 Days</mat-option>
+              <mat-option value="90">90 Days</mat-option>
+            </mat-select>
+          </mat-form-field>
+          
+          <button mat-icon-button (click)="refreshData()" title="Refresh Data">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {{ isEmployee ? 'Date' : 'Employee' }}
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" 
+                  *ngIf="!isEmployee">Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Check In
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Check Out
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Work Hours
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr *ngFor="let record of filteredRecords; let i = index" class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">
+                  {{ isEmployee ? (record.date | date:'mediumDate') : record.employeeName }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap" *ngIf="!isEmployee">
+                <div class="text-sm text-gray-900">{{ record.date | date:'mediumDate' }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">
+                  {{ record.checkInTime || '--:--' }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">
+                  {{ record.checkOutTime || '--:--' }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">
+                  {{ record.workHours || '--' }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                      [class]="getAttendanceStatusClass(record.status)">
+                  {{ record.status }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="filteredRecords.length === 0" class="text-center py-12">
+        <mat-icon class="text-gray-400 text-6xl mb-4">schedule</mat-icon>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No attendance records found</h3>
+        <p class="text-gray-500">{{ isEmployee ? 'Your attendance records will appear here.' : 'No attendance records match your filter.' }}</p>
+      </div>
+    </div>
+
+    <!-- Weekly Summary Chart -->
+    <div class="card mt-8" *ngIf="isEmployee">
+      <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+        <mat-icon class="text-primary-600">bar_chart</mat-icon>
+        Weekly Summary
+      </h3>
+
+      <div class="h-64">
+        <canvas #attendanceChart></canvas>
+      </div>
+    </div>
+  </div>
+</div>

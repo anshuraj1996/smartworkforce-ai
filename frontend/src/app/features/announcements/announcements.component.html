@@ -1,0 +1,53 @@
+<div class="announcements-page">
+  <div class="page-header">
+    <h1>Announcements</h1>
+    <button mat-raised-button color="primary" *ngIf="canPost" (click)="showForm = !showForm">
+      {{ showForm ? 'Cancel' : 'New Announcement' }}
+    </button>
+  </div>
+
+  <mat-card class="form-card" *ngIf="showForm">
+    <form [formGroup]="announcementForm" (ngSubmit)="submit()">
+      <mat-form-field appearance="outline">
+        <mat-label>Title</mat-label>
+        <input matInput formControlName="title">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Message</mat-label>
+        <textarea matInput rows="3" formControlName="body"></textarea>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Category</mat-label>
+        <mat-select formControlName="category">
+          <mat-option value="GENERAL">General</mat-option>
+          <mat-option value="POLICY">Policy Update</mat-option>
+          <mat-option value="FESTIVAL">Festival Greeting</mat-option>
+          <mat-option value="ACHIEVEMENT">Achievement</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-checkbox formControlName="isPinned">Pin to top</mat-checkbox>
+
+      <button mat-raised-button color="primary" type="submit" [disabled]="announcementForm.invalid">
+        Post
+      </button>
+    </form>
+  </mat-card>
+
+  <div class="feed">
+    <mat-card class="feed-item" *ngFor="let item of feed" [ngClass]="'type-' + item.type.toLowerCase()">
+      <mat-icon>{{ icon(item) }}</mat-icon>
+      <div class="feed-content">
+        <div class="feed-title">
+          {{ item.title }}
+          <mat-icon class="pin-icon" *ngIf="item.isPinned">push_pin</mat-icon>
+        </div>
+        <div class="feed-body">{{ item.body }}</div>
+      </div>
+    </mat-card>
+
+    <p class="empty-state" *ngIf="feed.length === 0">Nothing to show yet</p>
+  </div>
+</div>

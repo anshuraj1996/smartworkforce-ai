@@ -1,0 +1,134 @@
+<div class="min-h-screen flex items-center justify-center gradient-bg p-4">
+  <!-- Animated background elements -->
+  <div class="absolute inset-0 overflow-hidden">
+    <div class="absolute -top-40 -right-32 w-80 h-80 bg-white opacity-10 rounded-full blur-3xl animate-pulse"></div>
+    <div class="absolute -bottom-40 -left-32 w-96 h-96 bg-white opacity-10 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s"></div>
+  </div>
+
+  <!-- Login Card -->
+  <div class="relative w-full max-w-md">
+    <div class="glassmorphism rounded-2xl shadow-large p-8 animate-fade-in">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl mb-4 shadow-lg">
+          <mat-icon class="text-white text-3xl">business</mat-icon>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">SmartWorkforce AI</h1>
+        <p class="text-gray-600">Sign in to your account</p>
+      </div>
+
+      <!-- Login Form -->
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700">Email Address</label>
+          <div class="relative">
+            <input
+              type="email"
+              formControlName="email"
+              autocomplete="email"
+              class="input-field pl-12"
+              placeholder="Enter your email"
+              [class.border-red-300]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched">
+            <mat-icon class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl">email</mat-icon>
+          </div>
+          <div *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched" 
+               class="text-red-600 text-sm mt-1">
+            <span *ngIf="loginForm.get('email')?.hasError('required')">Email is required</span>
+            <span *ngIf="loginForm.get('email')?.hasError('email')">Please enter a valid email</span>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700">Password</label>
+          <div class="relative">
+            <input
+              [type]="hidePassword ? 'password' : 'text'"
+              formControlName="password"
+              autocomplete="current-password"
+              class="input-field pl-12 pr-12"
+              placeholder="Enter your password"
+              [class.border-red-300]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+            <mat-icon class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl">lock</mat-icon>
+            <button
+              type="button"
+              (click)="hidePassword = !hidePassword"
+              class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+            </button>
+          </div>
+          <div *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" 
+               class="text-red-600 text-sm mt-1">
+            Password is required
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="loginForm.invalid || isLoading"
+          class="w-full btn-primary h-12 text-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+          <mat-spinner *ngIf="isLoading" diameter="20" class="mr-2"></mat-spinner>
+          <mat-icon *ngIf="!isLoading">login</mat-icon>
+          <span>{{isLoading ? 'Signing In...' : 'Sign In'}}</span>
+        </button>
+      </form>
+
+      <!-- Demo Accounts -->
+      <div *ngIf="showDemoAccounts" class="mt-8 pt-6 border-t border-gray-200">
+        <h4 class="text-center text-sm font-medium text-gray-700 mb-4">Try Demo Accounts</h4>
+        <div class="grid grid-cols-1 gap-3">
+          <button 
+            (click)="loginAsDemo('admin@smartworkforce.ai', 'admin123')"
+            class="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 rounded-lg border border-purple-200 transition-all duration-200 group">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                <mat-icon class="text-white text-sm">admin_panel_settings</mat-icon>
+              </div>
+              <div class="text-left">
+                <div class="text-sm font-medium text-gray-900">Admin Demo</div>
+                <div class="text-xs text-gray-600">Full system access</div>
+              </div>
+            </div>
+            <mat-icon class="text-gray-400 group-hover:text-purple-500">arrow_forward</mat-icon>
+          </button>
+
+          <button 
+            (click)="loginAsDemo('manager@smartworkforce.ai', 'manager123')"
+            class="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 rounded-lg border border-blue-200 transition-all duration-200 group">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                <mat-icon class="text-white text-sm">manage_accounts</mat-icon>
+              </div>
+              <div class="text-left">
+                <div class="text-sm font-medium text-gray-900">Manager Demo</div>
+                <div class="text-xs text-gray-600">Team management</div>
+              </div>
+            </div>
+            <mat-icon class="text-gray-400 group-hover:text-blue-500">arrow_forward</mat-icon>
+          </button>
+
+          <button 
+            (click)="loginAsDemo('john@smartworkforce.ai', 'emp123')"
+            class="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 rounded-lg border border-green-200 transition-all duration-200 group">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                <mat-icon class="text-white text-sm">person</mat-icon>
+              </div>
+              <div class="text-left">
+                <div class="text-sm font-medium text-gray-900">Employee Demo</div>
+                <div class="text-xs text-gray-600">Basic access</div>
+              </div>
+            </div>
+            <mat-icon class="text-gray-400 group-hover:text-green-500">arrow_forward</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="mt-8 text-center">
+        <p class="text-xs text-gray-500">
+          Enterprise-grade workforce management platform
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

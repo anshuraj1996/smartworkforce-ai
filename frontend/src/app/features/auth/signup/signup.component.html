@@ -1,0 +1,264 @@
+<div class="signup-container">
+  <div class="signup-card">
+    <!-- Header -->
+    <div class="card-header">
+      <h2>Register New Employee</h2>
+      <p class="subtitle">Create a new employee account for your organization</p>
+    </div>
+
+    <!-- Success Message -->
+    <div *ngIf="successMessage" class="alert alert-success">
+      <i class="fas fa-check-circle"></i>
+      {{ successMessage }}
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="errorMessage" class="alert alert-error">
+      <i class="fas fa-exclamation-circle"></i>
+      {{ errorMessage }}
+    </div>
+
+    <!-- Registration Form -->
+    <form [formGroup]="signupForm" (ngSubmit)="onSubmit()" class="signup-form">
+      
+      <!-- Personal Information Section -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class="fas fa-user"></i>
+          Personal Information
+        </h3>
+        
+        <div class="form-row">
+          <!-- Full Name -->
+          <div class="form-group">
+            <label for="name">
+              Full Name <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="name" 
+              formControlName="name"
+              placeholder="Enter full name"
+              [class.invalid]="isFieldInvalid('name')"
+            />
+            <div *ngIf="isFieldInvalid('name')" class="error-message">
+              {{ getFieldError('name') }}
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label for="email">
+              Email Address <span class="required">*</span>
+            </label>
+            <input 
+              type="email" 
+              id="email" 
+              formControlName="email"
+              placeholder="employee@company.com"
+              [class.invalid]="isFieldInvalid('email')"
+            />
+            <div *ngIf="isFieldInvalid('email')" class="error-message">
+              {{ getFieldError('email') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <!-- Employee ID -->
+          <div class="form-group">
+            <label for="employeeId">
+              Employee ID <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="employeeId" 
+              formControlName="employeeId"
+              placeholder="EMP001"
+              [class.invalid]="isFieldInvalid('employeeId')"
+            />
+            <small class="help-text">Format: Uppercase letters and numbers only</small>
+            <div *ngIf="isFieldInvalid('employeeId')" class="error-message">
+              {{ getFieldError('employeeId') }}
+            </div>
+          </div>
+
+          <!-- Join Date -->
+          <div class="form-group">
+            <label for="joinDate">
+              Join Date <span class="required">*</span>
+            </label>
+            <input 
+              type="date" 
+              id="joinDate" 
+              formControlName="joinDate"
+              [class.invalid]="isFieldInvalid('joinDate')"
+            />
+            <div *ngIf="isFieldInvalid('joinDate')" class="error-message">
+              {{ getFieldError('joinDate') }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Work Information Section -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class="fas fa-briefcase"></i>
+          Work Information
+        </h3>
+        
+        <div class="form-row">
+          <!-- Department -->
+          <div class="form-group">
+            <label for="department">
+              Department <span class="required">*</span>
+            </label>
+            <select 
+              id="department" 
+              formControlName="department"
+              [class.invalid]="isFieldInvalid('department')"
+            >
+              <option value="">Select department</option>
+              <option *ngFor="let dept of departments" [value]="dept">{{ dept }}</option>
+            </select>
+            <div *ngIf="isFieldInvalid('department')" class="error-message">
+              {{ getFieldError('department') }}
+            </div>
+          </div>
+
+          <!-- Designation -->
+          <div class="form-group">
+            <label for="designation">
+              Designation <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="designation" 
+              formControlName="designation"
+              placeholder="e.g. Software Developer"
+              [class.invalid]="isFieldInvalid('designation')"
+            />
+            <div *ngIf="isFieldInvalid('designation')" class="error-message">
+              {{ getFieldError('designation') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <!-- Role -->
+          <div class="form-group">
+            <label for="role">
+              Role <span class="required">*</span>
+            </label>
+            <select 
+              id="role" 
+              formControlName="role"
+              [class.invalid]="isFieldInvalid('role')"
+            >
+              <option *ngFor="let role of roles" [value]="role.value">{{ role.label }}</option>
+            </select>
+            <div *ngIf="isFieldInvalid('role')" class="error-message">
+              {{ getFieldError('role') }}
+            </div>
+          </div>
+
+          <!-- Manager -->
+          <div class="form-group">
+            <label for="managerId">
+              Reporting Manager
+            </label>
+            <select 
+              id="managerId" 
+              formControlName="managerId"
+            >
+              <option [value]="null">No Manager (Top Level)</option>
+              <option *ngFor="let manager of managers" [value]="manager.id">
+                {{ manager.name }} - {{ manager.designation }}
+              </option>
+            </select>
+            <small class="help-text">Select the employee's direct manager</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Security Section -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class="fas fa-lock"></i>
+          Security
+        </h3>
+        
+        <div class="form-row">
+          <!-- Password -->
+          <div class="form-group">
+            <label for="password">
+              Password <span class="required">*</span>
+            </label>
+            <div class="password-input">
+              <input 
+                [type]="showPassword ? 'text' : 'password'" 
+                id="password" 
+                formControlName="password"
+                placeholder="Minimum 6 characters"
+                [class.invalid]="isFieldInvalid('password')"
+              />
+              <button 
+                type="button" 
+                class="toggle-password"
+                (click)="togglePasswordVisibility()"
+              >
+                <i [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+              </button>
+            </div>
+            <div *ngIf="isFieldInvalid('password')" class="error-message">
+              {{ getFieldError('password') }}
+            </div>
+          </div>
+
+          <!-- Confirm Password -->
+          <div class="form-group">
+            <label for="confirmPassword">
+              Confirm Password <span class="required">*</span>
+            </label>
+            <input 
+              [type]="showPassword ? 'text' : 'password'" 
+              id="confirmPassword" 
+              formControlName="confirmPassword"
+              placeholder="Re-enter password"
+              [class.invalid]="isFieldInvalid('confirmPassword')"
+            />
+            <div *ngIf="isFieldInvalid('confirmPassword')" class="error-message">
+              {{ getFieldError('confirmPassword') }}
+            </div>
+            <div *ngIf="signupForm.hasError('passwordMismatch') && signupForm.get('confirmPassword')?.touched" class="error-message">
+              Passwords do not match
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button 
+          type="button" 
+          class="btn btn-secondary"
+          (click)="cancel()"
+          [disabled]="loading"
+        >
+          <i class="fas fa-times"></i>
+          Cancel
+        </button>
+        <button 
+          type="submit" 
+          class="btn btn-primary"
+          [disabled]="loading || signupForm.invalid"
+        >
+          <i *ngIf="!loading" class="fas fa-user-plus"></i>
+          <i *ngIf="loading" class="fas fa-spinner fa-spin"></i>
+          {{ loading ? 'Creating Account...' : 'Create Employee Account' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

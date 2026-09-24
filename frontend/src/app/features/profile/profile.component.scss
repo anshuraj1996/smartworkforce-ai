@@ -1,0 +1,582 @@
+// Profile Component Specific Styles
+
+// Tab Content Spacing
+.tab-content {
+  @apply py-8;
+}
+
+// Profile Header Card Enhancements
+.card {
+  @apply bg-white rounded-lg shadow-soft border border-gray-200 p-6;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    @apply shadow-lg;
+  }
+}
+
+// Avatar Hover Effects
+.profile-avatar-container {
+  position: relative;
+  
+  &:hover .avatar-overlay {
+    opacity: 1;
+  }
+}
+
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+// Stat Cards
+.stat-card {
+  @apply relative overflow-hidden bg-white rounded-lg shadow-soft border border-gray-200 p-4;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    @apply shadow-lg -translate-y-1;
+  }
+
+  .stat-number {
+    @apply text-3xl font-bold text-gray-900 mb-1;
+  }
+
+  .stat-label {
+    @apply text-sm text-gray-600 font-medium;
+  }
+}
+
+// Status Badge Styling
+.status-badge {
+  @apply px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide;
+}
+
+// Enhanced Material Tab Styling
+.profile-tabs {
+  @apply bg-white rounded-lg shadow-soft overflow-hidden;
+
+  ::ng-deep {
+    .mat-mdc-tab-labels {
+      @apply border-b border-gray-200;
+    }
+
+    .mat-mdc-tab {
+      @apply min-w-0;
+      
+      &:hover {
+        @apply bg-gray-50;
+      }
+    }
+
+    .mat-mdc-tab-label {
+      @apply px-6 py-4;
+      min-width: 150px;
+      
+      mat-icon {
+        @apply mr-2;
+      }
+    }
+
+    .mat-mdc-tab-label-active {
+      @apply text-primary-600;
+      background: linear-gradient(to bottom, rgba(59, 130, 246, 0.05), transparent);
+    }
+
+    .mat-ink-bar {
+      @apply bg-primary-600;
+      height: 3px;
+    }
+
+    .mat-mdc-tab-body-content {
+      @apply overflow-visible;
+    }
+  }
+}
+
+// Form Field Enhancements
+::ng-deep {
+  .mat-mdc-form-field {
+    @apply w-full;
+
+    &.mat-form-field-disabled {
+      .mat-mdc-input-element {
+        @apply text-gray-500 cursor-not-allowed;
+      }
+    }
+  }
+
+  .mat-mdc-form-field-icon-prefix {
+    @apply text-gray-600 mr-2;
+  }
+
+  // Material Input Outline Colors
+  .mat-mdc-form-field-appearance-outline {
+    .mat-mdc-notch-piece {
+      border-color: theme('colors.gray.300');
+    }
+
+    &.mat-focused {
+      .mat-mdc-notch-piece {
+        border-color: theme('colors.primary.600');
+      }
+    }
+
+    &.mat-form-field-invalid {
+      .mat-mdc-notch-piece {
+        border-color: theme('colors.red.500');
+      }
+    }
+  }
+}
+
+// Password Strength Indicator
+.password-strength-indicator {
+  @apply relative h-2 bg-gray-200 rounded-full overflow-hidden;
+
+  .strength-bar {
+    @apply absolute top-0 left-0 h-full transition-all duration-300;
+
+    &.weak {
+      @apply bg-red-500;
+    }
+
+    &.medium {
+      @apply bg-yellow-500;
+    }
+
+    &.strong {
+      @apply bg-green-500;
+    }
+  }
+}
+
+// Certification Card Animations
+.certification-card {
+  @apply transition-all duration-300;
+
+  &:hover {
+    @apply transform -translate-y-1 shadow-md;
+  }
+}
+
+// Export Button Styling
+.export-btn {
+  @apply transition-all duration-200;
+
+  &:hover {
+    @apply shadow-md transform -translate-y-0.5;
+  }
+}
+
+// Page Title
+.page-title {
+  @apply text-3xl font-bold text-gray-900 flex items-center gap-3;
+
+  mat-icon {
+    @apply text-4xl;
+  }
+}
+
+// Shadow Utilities
+.shadow-soft {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+// Skill Tag Animations
+.skill-tag {
+  @apply transition-all duration-200;
+
+  &:hover {
+    @apply transform scale-105 shadow-sm;
+  }
+}
+
+// Login History Cards
+.login-history-item {
+  @apply transition-all duration-200;
+
+  &:hover {
+    @apply bg-gray-100;
+  }
+}
+
+// Working Hours Section
+.working-hours-grid {
+  @apply grid grid-cols-7 gap-2;
+
+  .day-button {
+    @apply w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium;
+    @apply border-2 border-gray-300 text-gray-600 cursor-pointer transition-all duration-200;
+
+    &:hover {
+      @apply border-primary-400 bg-primary-50;
+    }
+
+    &.active {
+      @apply border-primary-600 bg-primary-600 text-white;
+    }
+  }
+}
+
+// Danger Zone Styling
+.danger-zone {
+  @apply border-2 border-red-200 bg-red-50 rounded-lg p-6;
+
+  .danger-title {
+    @apply text-red-900 font-semibold text-lg flex items-center gap-2 mb-4;
+  }
+
+  .danger-warning {
+    @apply bg-red-100 border border-red-300 rounded-lg p-4 text-sm text-red-800;
+  }
+}
+
+// Quick Stat Cards in Header
+.quick-stat {
+  @apply p-4 rounded-lg border-2 transition-all duration-300;
+
+  &:hover {
+    @apply transform scale-105 shadow-md;
+  }
+
+  .quick-stat-value {
+    @apply text-2xl font-bold;
+  }
+
+  .quick-stat-label {
+    @apply text-xs font-medium uppercase tracking-wide;
+  }
+}
+
+// Avatar Upload Button
+.avatar-upload-btn {
+  @apply w-10 h-10 rounded-full flex items-center justify-center cursor-pointer;
+  @apply shadow-lg transition-all duration-200;
+
+  &:hover {
+    @apply transform scale-110;
+  }
+
+  &.upload {
+    @apply bg-primary-600 hover:bg-primary-700;
+  }
+
+  &.remove {
+    @apply bg-red-600 hover:bg-red-700;
+  }
+}
+
+// Material Slide Toggle Custom Colors
+::ng-deep {
+  .mat-mdc-slide-toggle {
+    &.mat-primary {
+      .mdc-switch__track {
+        &::after {
+          background-color: theme('colors.primary.600');
+        }
+      }
+    }
+  }
+}
+
+// Tab Panel Animation
+::ng-deep {
+  .mat-mdc-tab-body-wrapper {
+    .mat-mdc-tab-body {
+      &.mat-mdc-tab-body-active {
+        animation: fade-in 0.3s ease-in-out;
+      }
+    }
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Certification List Item Enhancement
+.certification-item {
+  @apply transition-all duration-300;
+
+  &:hover {
+    @apply bg-gradient-to-r from-blue-50 to-purple-50;
+  }
+}
+
+// Loading Spinner Animation
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+// Emergency Contact Section
+.emergency-contact-section {
+  @apply border-l-4 border-red-500 pl-4;
+}
+
+// Address Section
+.address-section {
+  @apply border-l-4 border-primary-500 pl-4;
+}
+
+// Notification Settings
+.notification-setting {
+  @apply flex items-center justify-between p-4 bg-gray-50 rounded-lg;
+  @apply transition-all duration-200;
+
+  &:hover {
+    @apply bg-gray-100;
+  }
+
+  .notification-icon {
+    @apply w-12 h-12 flex items-center justify-center rounded-full;
+  }
+}
+
+// Profile Info Section
+.profile-info-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+
+  .info-item {
+    @apply flex items-center gap-2 text-gray-600;
+
+    mat-icon {
+      @apply text-primary-600;
+    }
+  }
+}
+
+// Account Stats Grid
+.account-stats-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4;
+}
+
+// Gradient Background for Header
+.profile-header-gradient {
+  background: linear-gradient(135deg, 
+    theme('colors.primary.500') 0%, 
+    theme('colors.primary.600') 50%, 
+    theme('colors.primary.700') 100%
+  );
+}
+
+// Button Hover Effects
+button {
+  &.mat-mdc-raised-button {
+    @apply transition-all duration-200;
+
+    &:hover:not([disabled]) {
+      @apply shadow-lg transform -translate-y-0.5;
+    }
+  }
+}
+
+// Responsive Adjustments
+@media (max-width: 768px) {
+  .page-title {
+    @apply text-2xl;
+
+    mat-icon {
+      @apply text-3xl;
+    }
+  }
+
+  .profile-tabs {
+    ::ng-deep {
+      .mat-mdc-tab-label {
+        @apply px-3 py-3;
+        min-width: auto;
+
+        mat-icon {
+          @apply mr-1;
+        }
+
+        .mat-mdc-tab-label-content {
+          font-size: 0.75rem;
+        }
+      }
+    }
+  }
+
+  .stat-card {
+    .stat-number {
+      @apply text-2xl;
+    }
+  }
+
+  .quick-stat {
+    .quick-stat-value {
+      @apply text-xl;
+    }
+  }
+
+  .card {
+    @apply p-4;
+  }
+}
+
+// Print Styles
+@media print {
+  .export-btn,
+  button,
+  .mat-mdc-tab-labels {
+    @apply hidden;
+  }
+
+  .card {
+    @apply shadow-none border-2 border-gray-300;
+    page-break-inside: avoid;
+  }
+
+  .page-title {
+    @apply text-2xl;
+  }
+}
+
+// Custom Scrollbar for Tab Content
+.tab-content {
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    @apply bg-gray-100 rounded;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    @apply bg-primary-400 rounded;
+
+    &:hover {
+      @apply bg-primary-600;
+    }
+  }
+}
+
+// Tooltip Styles
+.info-tooltip {
+  position: relative;
+
+  .tooltip-content {
+    @apply absolute hidden;
+    @apply bg-gray-900 text-white text-xs rounded py-1 px-2;
+    @apply -top-8 left-1/2 transform -translate-x-1/2;
+    @apply z-10 whitespace-nowrap;
+
+    &::after {
+      content: '';
+      @apply absolute top-full left-1/2 transform -translate-x-1/2;
+      border: 4px solid transparent;
+      border-top-color: theme('colors.gray.900');
+    }
+  }
+
+  &:hover .tooltip-content {
+    @apply block;
+  }
+}
+
+// Profile Completion Progress
+.profile-completion {
+  @apply relative h-2 bg-gray-200 rounded-full overflow-hidden;
+
+  .completion-bar {
+    @apply absolute top-0 left-0 h-full;
+    background: linear-gradient(90deg, 
+      theme('colors.green.400'),
+      theme('colors.green.500'),
+      theme('colors.green.600')
+    );
+    transition: width 0.5s ease;
+  }
+}
+
+// Material Form Field Label Colors
+::ng-deep {
+  .mat-mdc-form-field-label {
+    color: theme('colors.gray.600') !important;
+  }
+
+  .mat-mdc-form-field.mat-focused .mat-mdc-form-field-label {
+    color: theme('colors.primary.600') !important;
+  }
+}
+
+// Chip-like Skill Tags
+.skill-chip {
+  @apply inline-flex items-center px-4 py-2 rounded-full text-sm font-medium;
+  @apply bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800;
+  @apply transition-all duration-200 cursor-default;
+
+  &:hover {
+    @apply from-blue-200 to-blue-300 shadow-md transform scale-105;
+  }
+}
+
+// Section Headers
+.section-header {
+  @apply flex items-center gap-2 text-lg font-semibold text-gray-900 mb-4;
+
+  mat-icon {
+    @apply text-primary-600;
+  }
+}
+
+// Enhanced Dividers
+mat-divider {
+  @apply my-6;
+}
+
+// Focus States
+input:focus,
+select:focus,
+textarea:focus {
+  @apply outline-none ring-2 ring-primary-500 ring-opacity-50;
+}
+
+// Disabled State
+[disabled] {
+  @apply opacity-60 cursor-not-allowed;
+}
+
+// Success/Error Messages
+.success-message {
+  @apply bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg;
+}
+
+.error-message {
+  @apply bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg;
+}
+
+.warning-message {
+  @apply bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg;
+}
+
+.info-message {
+  @apply bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg;
+}

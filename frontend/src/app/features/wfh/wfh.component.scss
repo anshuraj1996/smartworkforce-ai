@@ -1,0 +1,66 @@
+.wfh-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 800px;
+}
+
+mat-card {
+  padding: 16px;
+}
+
+.quota-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.form-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.date-row {
+  display: flex;
+  gap: 16px;
+}
+
+.reason-field {
+  width: 100%;
+}
+
+.error-message {
+  color: #d32f2f;
+  font-size: 13px;
+}
+
+.request-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.request-row:last-child {
+  border-bottom: none;
+}
+
+.request-dates {
+  font-weight: 600;
+  min-width: 160px;
+}
+
+.request-reason {
+  flex: 1;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+}
+
+.empty-state {
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 14px;
+}

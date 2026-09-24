@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Pod
+
+metadata:
+  name: sidecar-demo
+
+spec:
+  volumes:
+    - name: shared-logs
+      emptyDir: {}
+
+  containers:
+    - name: app-writer
+      image: busybox
+      imagePullPolicy: IfNotPresent
+      command:
+        - sh
+        - -c
+        - "while true; do echo \"$(date) - app event\" >> /var/log/app/output.log; sleep 3; done"
+      volumeMounts:
+        - name: shared-logs
+          mountPath: /var/log/app
+
+    - name: log-sidecar
+      image: busybox
+      imagePullPolicy: IfNotPresent
+      command:
+        - sh
+        - -c
+        - "tail -f /var/log/app/output.log"
+      volumeMounts:
+        - name: shared-logs
+          mountPath: /var/log/app

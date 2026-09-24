@@ -1,0 +1,172 @@
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+  <!-- Header -->
+  <div class="bg-white shadow-soft border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-6">
+        <div>
+          <h1 class="page-title">
+            <mat-icon class="text-green-600">event_available</mat-icon>
+            Leave Management
+          </h1>
+          <p class="text-gray-600 mt-1" *ngIf="isEmployee">Apply for leave and track your requests</p>
+          <p class="text-gray-600 mt-1" *ngIf="!isEmployee">Manage team leave requests and approvals</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <button mat-raised-button color="primary" (click)="openLeaveForm()" *ngIf="isEmployee">
+            <mat-icon>add</mat-icon>
+            Apply Leave
+          </button>
+          <div class="text-right">
+            <p class="text-sm text-gray-600">{{ currentDate | date:'fullDate' }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" *ngIf="!isEmployee">
+      <div class="stat-card bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="stat-number text-white text-3xl font-bold">{{ stats.totalRequests }}</div>
+            <div class="stat-label text-blue-100">Pending Requests</div>
+          </div>
+          <mat-icon class="text-white text-2xl">description</mat-icon>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" *ngIf="isEmployee">
+      <div class="stat-card bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="stat-number text-white text-3xl font-bold">{{ stats.totalRequests }}</div>
+            <div class="stat-label text-blue-100">My Total Requests</div>
+          </div>
+          <mat-icon class="text-white text-2xl">description</mat-icon>
+        </div>
+      </div>
+
+      <div class="stat-card bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="stat-number text-white text-3xl font-bold">{{ stats.pending }}</div>
+            <div class="stat-label text-orange-100">Pending</div>
+          </div>
+          <mat-icon class="text-white text-2xl">pending_actions</mat-icon>
+        </div>
+      </div>
+
+      <div class="stat-card bg-gradient-to-r from-green-500 to-green-600 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="stat-number text-white text-3xl font-bold">{{ stats.approved }}</div>
+            <div class="stat-label text-green-100">Approved</div>
+          </div>
+          <mat-icon class="text-white text-2xl">check_circle</mat-icon>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leave Requests Table -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <mat-icon class="text-primary-600">list</mat-icon>
+          {{ isEmployee ? 'My Leave Requests' : 'Pending Team Leave Requests' }}
+        </h3>
+
+        <div class="flex items-center gap-2" *ngIf="isEmployee">
+          <mat-form-field appearance="outline" class="w-48">
+            <mat-label>Filter by Status</mat-label>
+            <mat-select [(value)]="selectedFilter" (selectionChange)="filterRequests()">
+              <mat-option value="all">All</mat-option>
+              <mat-option value="pending">Pending</mat-option>
+              <mat-option value="approved">Approved</mat-option>
+              <mat-option value="rejected">Rejected</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {{ isEmployee ? 'Date Applied' : 'Employee' }}
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Leave Type
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Duration
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Reason
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" *ngIf="!isEmployee">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr *ngFor="let request of filteredRequests; let i = index" class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">
+                  {{ isEmployee ? (request.appliedDate | date:'mediumDate') : request.employeeName }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">{{ request.leaveType }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">
+                  {{ request.startDate | date:'mediumDate' }} - {{ request.endDate | date:'mediumDate' }}
+                </div>
+                <div class="text-xs text-gray-500">{{ request.totalDays }} days</div>
+              </td>
+              <td class="px-6 py-4">
+                <div class="text-sm text-gray-900 max-w-xs truncate" [title]="request.reason">
+                  {{ request.reason }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                      [class]="getStatusClass(request.status)">
+                  {{ request.status }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium" *ngIf="!isEmployee && request.status === 'pending'">
+                <button mat-icon-button color="primary" (click)="approveRequest(request)" class="mr-2">
+                  <mat-icon>check</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" (click)="rejectRequest(request)">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="filteredRequests.length === 0" class="text-center py-12">
+        <mat-icon class="text-gray-400 text-6xl mb-4">event_busy</mat-icon>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No leave requests found</h3>
+        <p class="text-gray-500">{{ isEmployee ? 'You haven\'t applied for any leave yet.' : 'No leave requests match your filter.' }}</p>
+        <button mat-raised-button color="primary" (click)="openLeaveForm()" *ngIf="isEmployee" class="mt-4">
+          Apply for Leave
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

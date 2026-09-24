@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: CronJob
+
+metadata:
+  name: backend-db-sync-scheduled
+
+spec:
+  schedule: "*/2 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: db-sync
+              image: anshumanfatpipe/smartai-backend:v2
+              command: ["npm", "run", "db:sync"]
+              envFrom:
+                - configMapRef:
+                    name: backend-config
+                - secretRef:
+                    name: backend-secret

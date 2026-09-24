@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Environment files (contain real secrets - never commit)
+.env
+.env.local
+!.env.example
+
+# Kubernetes secrets (contain real DB password / JWT secret - never commit)
+k8s/backend/secret.yaml
+k8s/**/secret.yaml
+k8s/**/*secret*.yaml
+
+# Any key/cert material generated locally (e.g. the TLS lesson)
+*.key
+*.pem
+*.crt
+
+# Build output / caches
+frontend/.angular/
+frontend/dist/
+backend/dist/
+
+# Editor/OS junk
+.claude/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logn
+
+# Personal study/planning notes - not part of the project itself
+rodmap.md
+topic.md
+ARCHITECTURE_SUMMARY.md
+BACKEND_ENTERPRISE_ARCHITECTURE.md
+BACKEND_REVERSION_COMPLETE.md
+FRONTEND_ENTERPRISE_ARCHITECTURE.md
+DOCKER_K8S_INTERVIEW_QUESTIONS.md

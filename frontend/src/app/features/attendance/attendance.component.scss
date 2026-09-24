@@ -1,0 +1,282 @@
+// Attendance Component Styles
+.page-title {
+  @apply text-2xl font-bold text-gray-900 flex items-center gap-3;
+}
+
+.stat-card {
+  @apply bg-white rounded-xl p-6 shadow-soft border border-gray-100 transform hover:scale-105 transition-all duration-300;
+}
+
+.stat-number {
+  @apply text-3xl font-bold;
+}
+
+.stat-label {
+  @apply text-sm font-medium mt-1;
+}
+
+.card {
+  @apply bg-white rounded-xl shadow-soft border border-gray-100 p-6;
+}
+
+// Status-specific card styles
+.status-present {
+  @apply bg-green-50 border-green-200;
+  
+  .stat-number {
+    @apply text-green-600;
+  }
+  
+  .stat-label {
+    @apply text-green-600;
+  }
+  
+  mat-icon {
+    @apply text-green-500;
+  }
+}
+
+.status-working {
+  @apply bg-blue-50 border-blue-200;
+  
+  .stat-number {
+    @apply text-blue-600;
+  }
+  
+  .stat-label {
+    @apply text-blue-600;
+  }
+  
+  mat-icon {
+    @apply text-blue-500;
+  }
+}
+
+.status-late {
+  @apply bg-orange-50 border-orange-200;
+  
+  .stat-number {
+    @apply text-orange-600;
+  }
+  
+  .stat-label {
+    @apply text-orange-600;
+  }
+  
+  mat-icon {
+    @apply text-orange-500;
+  }
+}
+
+.status-absent {
+  @apply bg-red-50 border-red-200;
+  
+  .stat-number {
+    @apply text-red-600;
+  }
+  
+  .stat-label {
+    @apply text-red-600;
+  }
+  
+  mat-icon {
+    @apply text-red-500;
+  }
+}
+
+// Table styles
+.mat-mdc-table {
+  @apply w-full;
+}
+
+.mat-mdc-header-cell {
+  @apply bg-gray-50 text-gray-500 font-medium text-xs uppercase tracking-wider;
+}
+
+.mat-mdc-cell {
+  @apply text-sm text-gray-900;
+}
+
+.mat-mdc-row {
+  @apply hover:bg-gray-50 transition-colors duration-200;
+}
+
+// Status badge styles for attendance records
+.attendance-status-present {
+  @apply bg-green-100 text-green-800;
+}
+
+.attendance-status-late {
+  @apply bg-orange-100 text-orange-800;
+}
+
+.attendance-status-absent {
+  @apply bg-red-100 text-red-800;
+}
+
+.attendance-status-working {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.attendance-status-completed {
+  @apply bg-gray-100 text-gray-800;
+}
+
+// Button styles
+.mat-mdc-raised-button {
+  border-radius: 0.5rem !important;
+  
+  &[color="primary"] {
+    @apply bg-blue-600 hover:bg-blue-700;
+  }
+  
+  &[color="accent"] {
+    @apply bg-purple-600 hover:bg-purple-700;
+  }
+  
+  &:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+}
+
+// Form styles
+.mat-mdc-form-field {
+  @apply w-full;
+}
+
+.mat-mdc-form-field .mat-mdc-text-field-wrapper {
+  border-radius: 0.5rem !important;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .page-title {
+    @apply text-xl;
+  }
+  
+  .stat-number {
+    @apply text-2xl;
+  }
+  
+  .grid {
+    @apply grid-cols-1;
+  }
+  
+  .overflow-x-auto {
+    @apply -mx-6;
+    
+    table {
+      min-width: 700px;
+    }
+  }
+  
+  .flex {
+    &.gap-2 {
+      @apply flex-col gap-4;
+    }
+  }
+}
+
+// Loading and empty states
+.loading-skeleton {
+  @apply animate-pulse bg-gray-200 rounded;
+}
+
+.empty-state {
+  @apply text-center py-12;
+  
+  mat-icon {
+    @apply text-gray-400 text-6xl mb-4;
+  }
+  
+  h3 {
+    @apply text-lg font-medium text-gray-900 mb-2;
+  }
+  
+  p {
+    @apply text-gray-500 mb-4;
+  }
+}
+
+// Chart container
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+  
+  canvas {
+    max-height: 100%;
+  }
+}
+
+// Animation for status cards
+.stat-card {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+// Animation for table rows
+.mat-mdc-row {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Time display styles
+.time-display {
+  @apply font-mono text-lg;
+}
+
+.date-display {
+  @apply text-sm text-gray-600;
+}
+
+// Status icons
+.status-icon {
+  &.present {
+    @apply text-green-500;
+  }
+  
+  &.late {
+    @apply text-orange-500;
+  }
+  
+  &.absent {
+    @apply text-red-500;
+  }
+  
+  &.working {
+    @apply text-blue-500;
+  }
+}
+
+// Dark theme support
+:host-context(.dark-theme) {
+  .card {
+    @apply bg-gray-800 border-gray-700;
+  }
+  
+  .mat-mdc-header-cell {
+    @apply bg-gray-700 text-gray-300;
+  }
+  
+  .mat-mdc-cell {
+    @apply text-gray-100;
+  }
+  
+  .mat-mdc-row:hover {
+    @apply bg-gray-700;
+  }
+  
+  .page-title {
+    @apply text-gray-100;
+  }
+}

@@ -1,0 +1,147 @@
+// Leave Component Styles
+.page-title {
+  @apply text-2xl font-bold text-gray-900 flex items-center gap-3;
+}
+
+.stat-card {
+  @apply bg-white rounded-xl p-6 shadow-soft border border-gray-100 transform hover:scale-105 transition-all duration-300;
+}
+
+.stat-number {
+  @apply text-3xl font-bold;
+}
+
+.stat-label {
+  @apply text-sm font-medium mt-1;
+}
+
+.card {
+  @apply bg-white rounded-xl shadow-soft border border-gray-100 p-6;
+}
+
+// Table styles
+.mat-mdc-table {
+  @apply w-full;
+}
+
+.mat-mdc-header-cell {
+  @apply bg-gray-50 text-gray-500 font-medium text-xs uppercase tracking-wider;
+}
+
+.mat-mdc-cell {
+  @apply text-sm text-gray-900;
+}
+
+.mat-mdc-row {
+  @apply hover:bg-gray-50 transition-colors duration-200;
+}
+
+// Status badge styles
+.status-pending {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.status-approved {
+  @apply bg-green-100 text-green-800;
+}
+
+.status-rejected {
+  @apply bg-red-100 text-red-800;
+}
+
+// Form styles
+.mat-mdc-form-field {
+  @apply w-full;
+}
+
+.mat-mdc-form-field .mat-mdc-text-field-wrapper {
+  border-radius: 0.5rem !important;
+}
+
+// Button styles
+.mat-mdc-raised-button {
+  border-radius: 0.5rem !important;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .page-title {
+    @apply text-xl;
+  }
+  
+  .stat-number {
+    @apply text-2xl;
+  }
+  
+  .grid {
+    @apply grid-cols-1;
+  }
+  
+  .overflow-x-auto {
+    @apply -mx-6;
+    
+    table {
+      min-width: 600px;
+    }
+  }
+}
+
+// Loading and empty states
+.loading-skeleton {
+  @apply animate-pulse bg-gray-200 rounded;
+}
+
+.empty-state {
+  @apply text-center py-12;
+  
+  mat-icon {
+    @apply text-gray-400 text-6xl mb-4;
+  }
+  
+  h3 {
+    @apply text-lg font-medium text-gray-900 mb-2;
+  }
+  
+  p {
+    @apply text-gray-500 mb-4;
+  }
+}
+
+// Animation for table rows
+.mat-mdc-row {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Dark theme support
+:host-context(.dark-theme) {
+  .card {
+    @apply bg-gray-800 border-gray-700;
+  }
+  
+  .mat-mdc-header-cell {
+    @apply bg-gray-700 text-gray-300;
+  }
+  
+  .mat-mdc-cell {
+    @apply text-gray-100;
+  }
+  
+  .mat-mdc-row:hover {
+    @apply bg-gray-700;
+  }
+  
+  .page-title {
+    @apply text-gray-100;
+  }
+}

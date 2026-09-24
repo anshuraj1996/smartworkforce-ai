@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: quota-demo-limits
+  namespace: quota-demo
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      default:
+        cpu: 200m
+        memory: 256Mi
+      max:
+        cpu: 500m
+        memory: 512Mi
+      min:
+        cpu: 50m
+        memory: 64Mi

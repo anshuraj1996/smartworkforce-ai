@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: Job
+
+metadata:
+  name: backend-db-sync
+
+spec:
+  backoffLimit: 2
+
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: db-sync
+          image: anshumanfatpipe/smartai-backend:v2
+          command: ["npm", "run", "db:sync"]
+
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: backend-secret

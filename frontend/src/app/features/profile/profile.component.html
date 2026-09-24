@@ -1,0 +1,728 @@
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+  <!-- Header -->
+  <div class="bg-white shadow-soft border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-6">
+        <div>
+          <h1 class="page-title">
+            <mat-icon class="text-primary-600">account_circle</mat-icon>
+            My Profile
+          </h1>
+          <p class="text-gray-600 mt-1">Manage your personal information and preferences</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <button mat-raised-button color="accent" (click)="exportData('json')" class="export-btn">
+            <mat-icon>download</mat-icon>
+            Export Data
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="flex flex-col items-center justify-center">
+      <mat-icon class="text-primary-600 text-6xl animate-spin">refresh</mat-icon>
+      <p class="text-gray-600 mt-4">Loading profile...</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="!isLoading && currentProfile" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Profile Header Card -->
+    <div class="card mb-8 relative overflow-hidden">
+      <!-- Background Pattern -->
+      <div class="absolute top-0 left-0 right-0 h-32 bg-gradient-to-r from-primary-500 to-primary-600"></div>
+      
+      <!-- Profile Content -->
+      <div class="relative pt-20 pb-6">
+        <div class="flex flex-col md:flex-row items-center md:items-end gap-6">
+          <!-- Avatar Section -->
+          <div class="relative group">
+            <div class="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-white">
+              <img *ngIf="currentProfile.avatar || avatarPreview" 
+                   [src]="avatarPreview || currentProfile.avatar" 
+                   alt="Profile Avatar" 
+                   class="w-full h-full object-cover">
+              <div *ngIf="!currentProfile.avatar && !avatarPreview" 
+                   class="w-full h-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-4xl font-bold">
+                {{ getInitials(currentProfile.name) }}
+              </div>
+            </div>
+            <!-- Avatar Actions -->
+            <div class="absolute bottom-0 right-0 flex gap-2">
+              <label for="avatar-upload" 
+                     class="w-10 h-10 bg-primary-600 hover:bg-primary-700 rounded-full flex items-center justify-center cursor-pointer shadow-lg transition-all duration-200 hover:scale-110">
+                <mat-icon class="text-white text-sm">photo_camera</mat-icon>
+                <input id="avatar-upload" type="file" accept="image/*" class="hidden" (change)="onAvatarSelected($event)">
+              </label>
+              <button *ngIf="currentProfile.avatar" 
+                      (click)="removeAvatar()" 
+                      class="w-10 h-10 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110">
+                <mat-icon class="text-white text-sm">delete</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- Profile Info -->
+          <div class="flex-1 text-center md:text-left">
+            <div class="flex items-center justify-center md:justify-start gap-3 mb-2">
+              <h2 class="text-3xl font-bold text-gray-900">{{ currentProfile.name }}</h2>
+              <span class="status-badge" [ngClass]="'bg-' + getRoleColor(currentProfile.role) + '-100 text-' + getRoleColor(currentProfile.role) + '-800'">
+                {{ currentProfile.role }}
+              </span>
+            </div>
+            <div class="flex flex-wrap items-center justify-center md:justify-start gap-4 text-gray-600">
+              <div class="flex items-center gap-1">
+                <mat-icon class="text-sm">email</mat-icon>
+                <span>{{ currentProfile.email }}</span>
+              </div>
+              <div class="flex items-center gap-1" *ngIf="currentProfile.phone">
+                <mat-icon class="text-sm">phone</mat-icon>
+                <span>{{ currentProfile.phone }}</span>
+              </div>
+              <div class="flex items-center gap-1" *ngIf="currentProfile.designation">
+                <mat-icon class="text-sm">work</mat-icon>
+                <span>{{ currentProfile.designation }}</span>
+              </div>
+              <div class="flex items-center gap-1" *ngIf="currentProfile.department">
+                <mat-icon class="text-sm">business</mat-icon>
+                <span>{{ currentProfile.department }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Stats -->
+          <div class="flex gap-4 text-center">
+            <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div class="text-2xl font-bold text-blue-600">{{ calculateExperience() }}</div>
+              <div class="text-xs text-blue-600 font-medium">Years</div>
+            </div>
+            <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+              <div class="text-2xl font-bold text-green-600">{{ userStats.attendanceRate || 0 }}%</div>
+              <div class="text-xs text-green-600 font-medium">Attendance</div>
+            </div>
+            <div class="p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <div class="text-2xl font-bold text-purple-600">{{ currentProfile.skills?.length || 0 }}</div>
+              <div class="text-xs text-purple-600 font-medium">Skills</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabbed Content -->
+    <mat-tab-group (selectedTabChange)="onTabChanged($event)" 
+                   class="profile-tabs"
+                   [selectedIndex]="selectedTabIndex">
+      
+      <!-- Personal Information Tab -->
+      <mat-tab label="Personal Information">
+        <ng-template mat-tab-label>
+          <mat-icon class="mr-2">person</mat-icon>
+          Personal Info
+        </ng-template>
+        
+        <div class="tab-content">
+          <div class="card">
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <mat-icon class="text-primary-600">badge</mat-icon>
+                Basic Information
+              </h3>
+              <button mat-raised-button 
+                      [color]="isEditing ? 'warn' : 'primary'" 
+                      (click)="toggleEdit()">
+                <mat-icon>{{ isEditing ? 'close' : 'edit' }}</mat-icon>
+                {{ isEditing ? 'Cancel' : 'Edit' }}
+              </button>
+            </div>
+
+            <form [formGroup]="profileForm">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Full Name -->
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Full Name</mat-label>
+                  <input matInput formControlName="name" [readonly]="!isEditing">
+                  <mat-icon matPrefix>person</mat-icon>
+                  <mat-error *ngIf="profileForm.get('name')?.hasError('required')">Name is required</mat-error>
+                </mat-form-field>
+
+                <!-- Email (Read-only) -->
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Email Address</mat-label>
+                  <input matInput formControlName="email" readonly>
+                  <mat-icon matPrefix>email</mat-icon>
+                </mat-form-field>
+
+                <!-- Phone -->
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Phone Number</mat-label>
+                  <input matInput formControlName="phone" [readonly]="!isEditing">
+                  <mat-icon matPrefix>phone</mat-icon>
+                  <mat-error *ngIf="profileForm.get('phone')?.hasError('pattern')">Invalid phone number</mat-error>
+                </mat-form-field>
+
+                <!-- Employee ID (Read-only) -->
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Employee ID</mat-label>
+                  <input matInput formControlName="employeeId" readonly>
+                  <mat-icon matPrefix>fingerprint</mat-icon>
+                </mat-form-field>
+
+                <!-- Department -->
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Department</mat-label>
+                  <mat-select formControlName="department" [disabled]="!isEditing">
+                    <mat-option *ngFor="let dept of departments" [value]="dept">{{ dept }}</mat-option>
+                  </mat-select>
+                  <mat-icon matPrefix>business</mat-icon>
+                </mat-form-field>
+
+                <!-- Designation -->
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Designation</mat-label>
+                  <input matInput formControlName="designation" [readonly]="!isEditing">
+                  <mat-icon matPrefix>work</mat-icon>
+                </mat-form-field>
+              </div>
+
+              <!-- Address Section -->
+              <div class="mt-6">
+                <h4 class="text-md font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                  <mat-icon class="text-primary-600">location_on</mat-icon>
+                  Address Information
+                </h4>
+                <div formGroupName="address">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <mat-form-field appearance="outline" class="w-full md:col-span-2">
+                      <mat-label>Street Address</mat-label>
+                      <input matInput formControlName="street" [readonly]="!isEditing">
+                      <mat-icon matPrefix>home</mat-icon>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="w-full">
+                      <mat-label>City</mat-label>
+                      <input matInput formControlName="city" [readonly]="!isEditing">
+                      <mat-icon matPrefix>location_city</mat-icon>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="w-full">
+                      <mat-label>State</mat-label>
+                      <input matInput formControlName="state" [readonly]="!isEditing">
+                      <mat-icon matPrefix>map</mat-icon>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="w-full">
+                      <mat-label>ZIP Code</mat-label>
+                      <input matInput formControlName="zipCode" [readonly]="!isEditing">
+                      <mat-icon matPrefix>markunread_mailbox</mat-icon>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="w-full">
+                      <mat-label>Country</mat-label>
+                      <input matInput formControlName="country" [readonly]="!isEditing">
+                      <mat-icon matPrefix>public</mat-icon>
+                    </mat-form-field>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Emergency Contact Section -->
+              <div class="mt-6">
+                <h4 class="text-md font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                  <mat-icon class="text-red-600">local_hospital</mat-icon>
+                  Emergency Contact
+                </h4>
+                <div formGroupName="emergencyContact">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <mat-form-field appearance="outline" class="w-full">
+                      <mat-label>Contact Name</mat-label>
+                      <input matInput formControlName="name" [readonly]="!isEditing">
+                      <mat-icon matPrefix>person</mat-icon>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="w-full">
+                      <mat-label>Relationship</mat-label>
+                      <input matInput formControlName="relationship" [readonly]="!isEditing">
+                      <mat-icon matPrefix>family_restroom</mat-icon>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="w-full">
+                      <mat-label>Phone Number</mat-label>
+                      <input matInput formControlName="phone" [readonly]="!isEditing">
+                      <mat-icon matPrefix>phone</mat-icon>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="w-full">
+                      <mat-label>Email Address</mat-label>
+                      <input matInput formControlName="email" [readonly]="!isEditing">
+                      <mat-icon matPrefix>email</mat-icon>
+                    </mat-form-field>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Save Button -->
+              <div class="flex justify-end mt-6" *ngIf="isEditing">
+                <button mat-raised-button color="primary" 
+                        (click)="saveProfile()" 
+                        [disabled]="!profileForm.valid">
+                  <mat-icon>save</mat-icon>
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Professional Details Tab -->
+      <mat-tab label="Professional">
+        <ng-template mat-tab-label>
+          <mat-icon class="mr-2">work</mat-icon>
+          Professional
+        </ng-template>
+        
+        <div class="tab-content">
+          <!-- Skills Section -->
+          <div class="card mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <mat-icon class="text-primary-600">code</mat-icon>
+              Skills & Expertise
+            </h3>
+            <div class="flex flex-wrap gap-2 mb-4">
+              <span *ngFor="let skill of currentProfile.skills" 
+                    class="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                {{ skill }}
+              </span>
+              <span *ngIf="!currentProfile.skills || currentProfile.skills.length === 0" 
+                    class="text-gray-500 italic">
+                No skills added yet
+              </span>
+            </div>
+          </div>
+
+          <!-- Certifications Section -->
+          <div class="card">
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <mat-icon class="text-primary-600">workspace_premium</mat-icon>
+                Certifications
+              </h3>
+            </div>
+
+            <!-- Certification List -->
+            <div class="space-y-4 mb-6" *ngIf="currentProfile.certifications && currentProfile.certifications.length > 0">
+              <div *ngFor="let cert of currentProfile.certifications" 
+                   class="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow bg-gradient-to-r from-white to-gray-50">
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <h4 class="font-semibold text-gray-900 flex items-center gap-2">
+                      <mat-icon class="text-primary-600">verified</mat-icon>
+                      {{ cert.name }}
+                    </h4>
+                    <p class="text-sm text-gray-600 mt-1">{{ cert.provider }}</p>
+                    <div class="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                      <span class="flex items-center gap-1">
+                        <mat-icon class="text-xs">event</mat-icon>
+                        Obtained: {{ formatDate(cert.dateObtained) }}
+                      </span>
+                      <span class="flex items-center gap-1" *ngIf="cert.expiryDate">
+                        <mat-icon class="text-xs">event_busy</mat-icon>
+                        Expires: {{ formatDate(cert.expiryDate) }}
+                      </span>
+                    </div>
+                    <a *ngIf="cert.certificateUrl" 
+                       [href]="cert.certificateUrl" 
+                       target="_blank" 
+                       class="text-primary-600 hover:text-primary-700 text-sm mt-2 inline-flex items-center gap-1">
+                      <mat-icon class="text-sm">open_in_new</mat-icon>
+                      View Certificate
+                    </a>
+                  </div>
+                  <button mat-icon-button color="warn" (click)="deleteCertification(cert.id)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div *ngIf="!currentProfile.certifications || currentProfile.certifications.length === 0" 
+                 class="text-center py-8 text-gray-500">
+              <mat-icon class="text-6xl text-gray-300">workspace_premium</mat-icon>
+              <p class="mt-2">No certifications added yet</p>
+            </div>
+
+            <!-- Add Certification Form -->
+            <mat-divider class="my-6"></mat-divider>
+            <h4 class="text-md font-semibold text-gray-700 mb-4">Add New Certification</h4>
+            <form [formGroup]="certificationForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Certification Name</mat-label>
+                <input matInput formControlName="name">
+                <mat-icon matPrefix>workspace_premium</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Provider/Institution</mat-label>
+                <input matInput formControlName="provider">
+                <mat-icon matPrefix>business</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Date Obtained</mat-label>
+                <input matInput type="date" formControlName="dateObtained">
+                <mat-icon matPrefix>event</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Expiry Date (Optional)</mat-label>
+                <input matInput type="date" formControlName="expiryDate">
+                <mat-icon matPrefix>event_busy</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="w-full md:col-span-2">
+                <mat-label>Certificate URL (Optional)</mat-label>
+                <input matInput formControlName="certificateUrl">
+                <mat-icon matPrefix>link</mat-icon>
+              </mat-form-field>
+
+              <div class="md:col-span-2 flex justify-end">
+                <button mat-raised-button color="primary" 
+                        (click)="addCertification()" 
+                        [disabled]="!certificationForm.valid">
+                  <mat-icon>add</mat-icon>
+                  Add Certification
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Security Settings Tab -->
+      <mat-tab label="Security">
+        <ng-template mat-tab-label>
+          <mat-icon class="mr-2">security</mat-icon>
+          Security
+        </ng-template>
+        
+        <div class="tab-content">
+          <!-- Change Password -->
+          <div class="card mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <mat-icon class="text-primary-600">lock</mat-icon>
+              Change Password
+            </h3>
+
+            <form [formGroup]="passwordForm" class="space-y-4">
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Current Password</mat-label>
+                <input matInput type="password" formControlName="currentPassword">
+                <mat-icon matPrefix>lock</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>New Password</mat-label>
+                <input matInput type="password" formControlName="newPassword">
+                <mat-icon matPrefix>vpn_key</mat-icon>
+              </mat-form-field>
+
+              <!-- Password Strength Indicator -->
+              <div *ngIf="passwordForm.get('newPassword')?.value" class="mb-4">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm text-gray-600">Password Strength:</span>
+                  <span class="text-sm font-medium" 
+                        [ngClass]="{
+                          'text-red-600': passwordStrength.score < 40,
+                          'text-yellow-600': passwordStrength.score >= 40 && passwordStrength.score < 80,
+                          'text-green-600': passwordStrength.score >= 80
+                        }">
+                    {{ getPasswordStrengthText() }}
+                  </span>
+                </div>
+                <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div class="h-full transition-all duration-300" 
+                       [style.width.%]="passwordStrength.score"
+                       [ngClass]="{
+                         'bg-red-500': passwordStrength.score < 40,
+                         'bg-yellow-500': passwordStrength.score >= 40 && passwordStrength.score < 80,
+                         'bg-green-500': passwordStrength.score >= 80
+                       }">
+                  </div>
+                </div>
+                <ul class="mt-2 space-y-1" *ngIf="passwordStrength.feedback.length > 0">
+                  <li *ngFor="let feedback of passwordStrength.feedback" class="text-xs text-gray-600 flex items-start gap-1">
+                    <mat-icon class="text-xs mt-0.5">info</mat-icon>
+                    {{ feedback }}
+                  </li>
+                </ul>
+              </div>
+
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Confirm New Password</mat-label>
+                <input matInput type="password" formControlName="confirmPassword">
+                <mat-icon matPrefix>check_circle</mat-icon>
+                <mat-error *ngIf="passwordForm.hasError('passwordMismatch')">Passwords do not match</mat-error>
+              </mat-form-field>
+
+              <div class="flex justify-end">
+                <button mat-raised-button color="primary" 
+                        (click)="changePassword()" 
+                        [disabled]="!passwordForm.valid">
+                  <mat-icon>update</mat-icon>
+                  Update Password
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Two-Factor Authentication -->
+          <div class="card mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <mat-icon class="text-primary-600">phonelink_lock</mat-icon>
+              Two-Factor Authentication
+            </h3>
+            <p class="text-gray-600 mb-4">Add an extra layer of security to your account</p>
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <p class="font-medium text-gray-900">2FA Status</p>
+                <p class="text-sm text-gray-600">
+                  {{ currentProfile.twoFactorEnabled ? 'Enabled' : 'Disabled' }}
+                </p>
+              </div>
+              <button mat-raised-button 
+                      [color]="currentProfile.twoFactorEnabled ? 'warn' : 'primary'">
+                {{ currentProfile.twoFactorEnabled ? 'Disable' : 'Enable' }} 2FA
+              </button>
+            </div>
+          </div>
+
+          <!-- Login History -->
+          <div class="card">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <mat-icon class="text-primary-600">history</mat-icon>
+              Recent Login Activity
+            </h3>
+            <div class="space-y-3">
+              <div *ngFor="let login of currentProfile.loginHistory?.slice(0, 5)" 
+                   class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center gap-3">
+                  <mat-icon class="text-gray-600">{{ login.success ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <div>
+                    <p class="text-sm font-medium text-gray-900">{{ login.ipAddress }}</p>
+                    <p class="text-xs text-gray-500">{{ login.deviceInfo }}</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <p class="text-sm text-gray-900">{{ formatDate(login.timestamp) }}</p>
+                  <span class="text-xs px-2 py-1 rounded-full" 
+                        [ngClass]="login.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
+                    {{ login.success ? 'Success' : 'Failed' }}
+                  </span>
+                </div>
+              </div>
+              <div *ngIf="!currentProfile.loginHistory || currentProfile.loginHistory.length === 0" 
+                   class="text-center py-4 text-gray-500">
+                No login history available
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Preferences Tab -->
+      <mat-tab label="Preferences">
+        <ng-template mat-tab-label>
+          <mat-icon class="mr-2">settings</mat-icon>
+          Preferences
+        </ng-template>
+        
+        <div class="tab-content">
+          <div class="card">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <mat-icon class="text-primary-600">tune</mat-icon>
+              System Preferences
+            </h3>
+
+            <form [formGroup]="preferencesForm">
+              <!-- Appearance Settings -->
+              <div class="mb-8">
+                <h4 class="text-md font-semibold text-gray-700 mb-4">Appearance</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Theme</mat-label>
+                    <mat-select formControlName="theme">
+                      <mat-option value="light">Light</mat-option>
+                      <mat-option value="dark">Dark</mat-option>
+                      <mat-option value="system">System Default</mat-option>
+                    </mat-select>
+                    <mat-icon matPrefix>palette</mat-icon>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Language</mat-label>
+                    <mat-select formControlName="language">
+                      <mat-option *ngFor="let lang of languages" [value]="lang.code">
+                        {{ lang.name }}
+                      </mat-option>
+                    </mat-select>
+                    <mat-icon matPrefix>language</mat-icon>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Timezone</mat-label>
+                    <mat-select formControlName="timezone">
+                      <mat-option *ngFor="let tz of timezones" [value]="tz">{{ tz }}</mat-option>
+                    </mat-select>
+                    <mat-icon matPrefix>schedule</mat-icon>
+                  </mat-form-field>
+                </div>
+              </div>
+
+              <!-- Notification Settings -->
+              <div class="mb-8">
+                <h4 class="text-md font-semibold text-gray-700 mb-4">Notifications</h4>
+                <div class="space-y-4">
+                  <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-3">
+                      <mat-icon class="text-primary-600">email</mat-icon>
+                      <div>
+                        <p class="font-medium text-gray-900">Email Notifications</p>
+                        <p class="text-sm text-gray-600">Receive updates via email</p>
+                      </div>
+                    </div>
+                    <mat-slide-toggle formControlName="emailNotifications" color="primary"></mat-slide-toggle>
+                  </div>
+
+                  <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-3">
+                      <mat-icon class="text-primary-600">notifications</mat-icon>
+                      <div>
+                        <p class="font-medium text-gray-900">Push Notifications</p>
+                        <p class="text-sm text-gray-600">Receive browser push notifications</p>
+                      </div>
+                    </div>
+                    <mat-slide-toggle formControlName="pushNotifications" color="primary"></mat-slide-toggle>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Working Hours -->
+              <div class="mb-8" formGroupName="workingHours">
+                <h4 class="text-md font-semibold text-gray-700 mb-4">Working Hours Preferences</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Start Time</mat-label>
+                    <input matInput type="time" formControlName="startTime">
+                    <mat-icon matPrefix>wb_sunny</mat-icon>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>End Time</mat-label>
+                    <input matInput type="time" formControlName="endTime">
+                    <mat-icon matPrefix>nights_stay</mat-icon>
+                  </mat-form-field>
+                </div>
+              </div>
+
+              <div class="flex justify-end">
+                <button mat-raised-button color="primary" 
+                        (click)="savePreferences()" 
+                        [disabled]="!preferencesForm.valid">
+                  <mat-icon>save</mat-icon>
+                  Save Preferences
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Account Management Tab -->
+      <mat-tab label="Account">
+        <ng-template mat-tab-label>
+          <mat-icon class="mr-2">admin_panel_settings</mat-icon>
+          Account
+        </ng-template>
+        
+        <div class="tab-content">
+          <!-- Data Export -->
+          <div class="card mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <mat-icon class="text-primary-600">cloud_download</mat-icon>
+              Export Your Data
+            </h3>
+            <p class="text-gray-600 mb-4">Download a copy of your account data</p>
+            <div class="flex gap-4">
+              <button mat-raised-button color="primary" (click)="exportData('json')">
+                <mat-icon>description</mat-icon>
+                Export as JSON
+              </button>
+              <button mat-raised-button color="primary" (click)="exportData('pdf')">
+                <mat-icon>picture_as_pdf</mat-icon>
+                Export as PDF
+              </button>
+            </div>
+          </div>
+
+          <!-- Account Statistics -->
+          <div class="card mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <mat-icon class="text-primary-600">analytics</mat-icon>
+              Account Statistics
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="stat-card bg-blue-50 border-blue-200">
+                <div class="stat-number text-blue-600">{{ userStats.totalAttendance || 0 }}</div>
+                <div class="stat-label text-blue-600">Total Days</div>
+              </div>
+              <div class="stat-card bg-green-50 border-green-200">
+                <div class="stat-number text-green-600">{{ userStats.onTimeCount || 0 }}</div>
+                <div class="stat-label text-green-600">On Time</div>
+              </div>
+              <div class="stat-card bg-orange-50 border-orange-200">
+                <div class="stat-number text-orange-600">{{ userStats.lateCount || 0 }}</div>
+                <div class="stat-label text-orange-600">Late Arrivals</div>
+              </div>
+              <div class="stat-card bg-purple-50 border-purple-200">
+                <div class="stat-number text-purple-600">{{ userStats.leavesTaken || 0 }}</div>
+                <div class="stat-label text-purple-600">Leaves Taken</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Danger Zone -->
+          <div class="card border-2 border-red-200 bg-red-50">
+            <h3 class="text-lg font-semibold text-red-900 mb-4 flex items-center gap-2">
+              <mat-icon class="text-red-600">warning</mat-icon>
+              Danger Zone
+            </h3>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between p-4 bg-white rounded-lg border border-red-200">
+                <div>
+                  <p class="font-medium text-gray-900">Delete Account</p>
+                  <p class="text-sm text-gray-600">Permanently delete your account and all data</p>
+                </div>
+                <button mat-raised-button color="warn" (click)="requestAccountDeletion()">
+                  <mat-icon>delete_forever</mat-icon>
+                  Request Deletion
+                </button>
+              </div>
+            </div>
+            <div class="mt-4 p-4 bg-red-100 rounded-lg">
+              <p class="text-sm text-red-800">
+                <mat-icon class="text-sm align-middle mr-1">info</mat-icon>
+                <strong>Warning:</strong> Account deletion is permanent and cannot be undone. 
+                All your data will be removed from our systems.
+              </p>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>

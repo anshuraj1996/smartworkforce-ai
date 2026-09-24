@@ -1,0 +1,335 @@
+// Dashboard Component Specific Styles
+
+// Dashboard header animations
+.dashboard-header {
+  @apply relative overflow-hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(59, 130, 246, 0.05),
+      transparent
+    );
+    animation: header-shine 3s infinite;
+  }
+}
+
+@keyframes header-shine {
+  0% {
+    left: -100%;
+  }
+  50%, 100% {
+    left: 100%;
+  }
+}
+
+// Enhanced stat cards with hover effects
+.stat-card {
+  @apply relative overflow-hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    @apply shadow-lg -translate-y-1;
+    
+    &::after {
+      transform: translateX(0);
+    }
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(to bottom, 
+      theme('colors.primary.500'), 
+      theme('colors.primary.600')
+    );
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .stat-number {
+    @apply relative;
+    
+    &::before {
+      content: attr(data-value);
+      position: absolute;
+      top: 0;
+      left: 0;
+      color: transparent;
+      background: linear-gradient(45deg, 
+        theme('colors.primary.500'), 
+        theme('colors.primary.600'),
+        theme('colors.primary.700')
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    &:hover::before {
+      opacity: 1;
+    }
+  }
+}
+
+// Animated progress indicators
+.progress-ring {
+  @apply relative inline-block;
+  
+  svg {
+    transform: rotate(-90deg);
+    
+    circle {
+      fill: none;
+      stroke-width: 4;
+      
+      &.progress-bg {
+        stroke: theme('colors.gray.200');
+      }
+      
+      &.progress-fill {
+        stroke: theme('colors.primary.500');
+        stroke-dasharray: 283;
+        stroke-dashoffset: 283;
+        animation: progress-fill 2s ease-out forwards;
+      }
+    }
+  }
+}
+
+@keyframes progress-fill {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+// Activity feed animations
+.activity-item {
+  @apply opacity-0 translate-x-4;
+  animation: slide-in-left 0.6s ease-out forwards;
+  
+  &:nth-child(1) { animation-delay: 0.1s; }
+  &:nth-child(2) { animation-delay: 0.2s; }
+  &:nth-child(3) { animation-delay: 0.3s; }
+  &:nth-child(4) { animation-delay: 0.4s; }
+}
+
+@keyframes slide-in-left {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// Quick action buttons with enhanced hover effects
+.quick-action-btn {
+  @apply relative overflow-hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(
+      circle at center,
+      rgba(255, 255, 255, 0.2) 0%,
+      transparent 70%
+    );
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.3s ease;
+  }
+  
+  &:hover::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+  
+  .action-icon {
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+  
+  &:hover .action-icon {
+    @apply scale-110;
+    animation: bounce-subtle 0.6s ease-in-out;
+  }
+}
+
+// Chart container with loading animation
+.chart-container {
+  @apply relative;
+  
+  &.loading {
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+      );
+      animation: loading-shimmer 1.5s infinite;
+    }
+  }
+}
+
+// Time display with smooth transitions
+.time-display {
+  @apply relative;
+  
+  .time-text {
+    transition: all 0.3s ease;
+    
+    &.updating {
+      @apply scale-105 text-primary-600;
+    }
+  }
+}
+
+// Attendance rate circle
+.attendance-circle {
+  @apply relative inline-flex items-center justify-center;
+  
+  .circle-bg {
+    @apply absolute inset-0;
+    border-radius: 50%;
+    background: conic-gradient(
+      theme('colors.success.500') 0deg,
+      theme('colors.success.500') calc(var(--percentage) * 3.6deg),
+      theme('colors.gray.200') calc(var(--percentage) * 3.6deg),
+      theme('colors.gray.200') 360deg
+    );
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      right: 4px;
+      bottom: 4px;
+      background: white;
+      border-radius: 50%;
+    }
+  }
+  
+  .circle-text {
+    @apply relative z-10 text-sm font-semibold text-gray-900;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .stat-card {
+    @apply p-4;
+    
+    .stat-number {
+      @apply text-2xl;
+    }
+  }
+  
+  .quick-action-btn {
+    @apply p-3;
+    
+    .action-icon {
+      @apply w-8 h-8;
+    }
+  }
+}
+
+// Dark theme support
+@media (prefers-color-scheme: dark) {
+  .stat-card {
+    @apply bg-gray-800 border-gray-700;
+    
+    .stat-number {
+      @apply text-gray-100;
+    }
+    
+    .stat-label {
+      @apply text-gray-400;
+    }
+  }
+  
+  .chart-container {
+    @apply bg-gray-800 border-gray-700;
+  }
+}
+
+// High contrast mode
+@media (prefers-contrast: high) {
+  .stat-card {
+    @apply border-2 border-gray-900;
+  }
+  
+  .quick-action-btn {
+    @apply border-2 border-gray-900;
+  }
+}
+
+// Print styles
+@media print {
+  .quick-action-btn {
+    @apply break-inside-avoid;
+  }
+  
+  .stat-card {
+    @apply shadow-none border border-gray-400;
+  }
+  
+  .chart-container {
+    @apply bg-white;
+  }
+}
+
+// Loading skeleton for dashboard components
+.skeleton {
+  @apply bg-gray-200 animate-pulse;
+  
+  &.skeleton-text {
+    @apply h-4 rounded;
+  }
+  
+  &.skeleton-circle {
+    @apply rounded-full;
+  }
+  
+  &.skeleton-rect {
+    @apply rounded-lg;
+  }
+}
+
+// Notification badges
+.notification-badge {
+  @apply absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full;
+  animation: pulse-notification 2s infinite;
+}
+
+@keyframes pulse-notification {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.1);
+  }
+}

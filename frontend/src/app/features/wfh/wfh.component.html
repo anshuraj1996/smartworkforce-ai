@@ -1,0 +1,79 @@
+<div class="wfh-page">
+  <h1>Work From Home</h1>
+
+  <mat-card class="quota-card" *ngIf="quota">
+    <div class="quota-header">
+      <span>Monthly WFH quota</span>
+      <span>{{ quota.used }} / {{ quota.quota }} days used</span>
+    </div>
+    <mat-progress-bar mode="determinate" [value]="(quota.used / quota.quota) * 100"></mat-progress-bar>
+  </mat-card>
+
+  <mat-card class="form-card">
+    <h2>Request WFH</h2>
+    <form [formGroup]="wfhForm" (ngSubmit)="submit()">
+      <div class="date-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Start Date</mat-label>
+          <input matInput [matDatepicker]="startPicker" formControlName="startDate">
+          <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+          <mat-datepicker #startPicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>End Date</mat-label>
+          <input matInput [matDatepicker]="endPicker" formControlName="endDate">
+          <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
+          <mat-datepicker #endPicker></mat-datepicker>
+        </mat-form-field>
+      </div>
+
+      <mat-checkbox formControlName="isHalfDay">Half day</mat-checkbox>
+
+      <mat-form-field appearance="outline" *ngIf="wfhForm.value.isHalfDay">
+        <mat-label>Half</mat-label>
+        <mat-select formControlName="halfDayType">
+          <mat-option value="MORNING">Morning</mat-option>
+          <mat-option value="AFTERNOON">Afternoon</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="reason-field">
+        <mat-label>Reason</mat-label>
+        <textarea matInput rows="2" formControlName="reason"></textarea>
+      </mat-form-field>
+
+      <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+      <button mat-raised-button color="primary" type="submit" [disabled]="wfhForm.invalid || submitting">
+        Submit Request
+      </button>
+    </form>
+  </mat-card>
+
+  <mat-card class="list-card">
+    <h2>My WFH Requests</h2>
+    <div class="request-row" *ngFor="let req of myRequests">
+      <div class="request-dates">
+        {{ req.startDate }} <span *ngIf="req.startDate !== req.endDate">- {{ req.endDate }}</span>
+        <span *ngIf="req.isHalfDay">({{ req.halfDayType }})</span>
+      </div>
+      <div class="request-reason">{{ req.reason }}</div>
+      <mat-chip [color]="statusColor(req.status)" selected>{{ req.status }}</mat-chip>
+    </div>
+    <p class="empty-state" *ngIf="myRequests.length === 0">No WFH requests yet</p>
+  </mat-card>
+
+  <mat-card class="list-card" *ngIf="isManagerOrAbove">
+    <h2>Pending Approvals</h2>
+    <div class="request-row" *ngFor="let req of pendingRequests">
+      <div class="request-dates">{{ req.startDate }} - {{ req.endDate }}</div>
+      <div class="request-reason">{{ req.reason }}</div>
+      <div class="request-actions">
+        <button mat-icon-button color="primary" (click)="approveRequest(req)"><mat-icon>check</mat-icon></button>
+        <button mat-icon-button color="warn" (click)="rejectRequest(req)"><mat-icon>close</mat-icon></button>
+      </div>
+    </div>
+    <p class="empty-state" *ngIf="pendingRequests.length === 0">Nothing pending</p>
+  </mat-card>
+</div>

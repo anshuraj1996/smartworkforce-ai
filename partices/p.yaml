@@ -1,0 +1,26 @@
+Deployment
+│
+├── metadata
+│   └── name
+│
+└── spec
+    ├── replicas
+    ├── selector
+    │
+    └── template
+        ├── metadata
+        │   └── labels
+        │
+        └── spec
+            └── containers
+                ├── name
+                ├── image
+                └── ports
+                    └── containerPort
+                    └── protocol: TCP
+                    └── name: http
+                    └── hostPort: 80
+                    └── containerPort: 443
+                    └── protocol: TCP
+                    └── name: https
+                    └── hostPort: 443
