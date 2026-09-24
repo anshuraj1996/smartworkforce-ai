@@ -31,6 +31,9 @@ Thumbs.db
 *.log
 logn
 
+# Personal practice folder - not part of the project itself
+partices/
+
 # Personal study/planning notes - not part of the project itself
 rodmap.md
 topic.md
