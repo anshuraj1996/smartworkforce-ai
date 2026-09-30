@@ -166,10 +166,8 @@ The backend now supports proper API versioning:
 - `GET /api/v1/health` - API health check
 - `GET /api/v1/docs` - API documentation
 
-#### Legacy Endpoints (still supported):
-- `POST /api/auth/login`
-- `POST /api/attendance/check-in`
-- `GET /api/attendance/today`
+#### Legacy Endpoints
+The unversioned `/api/auth/*`, `/api/attendance/*` and `/api/users/profile` routes have been removed - use the `/api/v1` equivalents above.
 
 ## 🛠️ Development Workflow
 
