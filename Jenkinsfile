@@ -23,6 +23,8 @@ pipeline {
             steps {
                 sh 'kubectl set image deployment/backend backend=${IMAGE_TAG}'
                 sh 'kubectl rollout status deployment/backend --timeout=120s'
+                sh 'kubectl rollout status deployment/backend --timeout=240s'
+
             }
         }
     }
