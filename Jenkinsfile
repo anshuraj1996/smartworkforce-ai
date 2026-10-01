@@ -19,6 +19,11 @@ pipeline {
                 sh 'docker save ${IMAGE_TAG} | docker exec -i minikube docker load'
             }
         }
+                stage('Approve Deploy') {
+            steps {
+                input message: 'Deploy this build to the cluster?', ok: 'Deploy'
+            }
+        }
         stage('Deploy') {
             steps {
                 sh 'kubectl set image deployment/backend backend=${IMAGE_TAG}'
