@@ -4,9 +4,9 @@ pipeline {
         IMAGE_TAG = "smartworkforce-backend:jenkins-${BUILD_NUMBER}"
     }
     stages {
-        stage('Checkout') {
+            stage('Checkout') {
             steps {
-                git branch: 'main', url: 'git@github.com-anshuraj1996:anshuraj1996/smartworkforce-ai.git'
+                git branch: 'main', url: 'git@github.com-anshuraj1996:anshuraj1996/smartworkforce-ai.git', credentialsId: 'github-anshuraj1996-ssh'
             }
         }
         stage('Build') {
