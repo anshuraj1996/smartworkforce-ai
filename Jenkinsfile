@@ -4,7 +4,7 @@ pipeline {
         IMAGE_TAG = "smartworkforce-backend:jenkins-${BUILD_NUMBER}"
     }
     stages {
-            stage('Checkout') {
+        stage('Checkout') {
             steps {
                 git branch: 'main', url: 'git@github.com-anshuraj1996:anshuraj1996/smartworkforce-ai.git', credentialsId: 'github-anshuraj1996-ssh'
             }
@@ -23,9 +23,18 @@ pipeline {
             steps {
                 sh 'kubectl set image deployment/backend backend=${IMAGE_TAG}'
                 sh 'kubectl rollout status deployment/backend --timeout=600s'
-
             }
-
+        }
+    }
+    post {
+        success {
+            echo "Pipeline succeeded - image ${IMAGE_TAG} deployed to minikube"
+        }
+        failure {
+            echo "Pipeline failed - check the stage logs above for details"
+        }
+        always {
+            sh 'docker rmi ${IMAGE_TAG} || true'
         }
     }
 }
