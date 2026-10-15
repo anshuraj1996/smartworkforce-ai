@@ -1,0 +1,46 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+
+metadata:
+  name: backend-worker-restricted-egress
+
+# Same egress as the API (backend-restricted-egress): Redis, Kafka, Postgres, DNS - nothing else.
+# The worker accepts no inbound traffic except kubelet probes, which NetworkPolicy doesn't block.
+spec:
+  podSelector:
+    matchLabels:
+      app: backend-worker
+
+  policyTypes:
+    - Egress
+
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+
+    - to:
+        - podSelector:
+            matchLabels:
+              app: kafka
+      ports:
+        - protocol: TCP
+          port: 9092
+
+    - to:
+        - ipBlock:
+            cidr: 10.2.5.143/32
+      ports:
+        - protocol: TCP
+          port: 5432
+
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

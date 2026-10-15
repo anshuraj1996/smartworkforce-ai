@@ -44,6 +44,7 @@ import {
   Severity
 } from './services/analytics.service';
 import { AuthService } from '../../core/services/auth.service';
+import { WorkforceInsightsComponent } from './workforce-insights/workforce-insights.component';
 
 Chart.register(...registerables);
 
@@ -70,7 +71,8 @@ Chart.register(...registerables);
     MatTooltipModule,
     MatChipsModule,
     MatProgressBarModule,
-    MatDialogModule
+    MatDialogModule,
+    WorkforceInsightsComponent
   ],
   templateUrl: './analytics.component.html',
   styleUrls: ['./analytics.component.scss']

@@ -51,6 +51,7 @@ cp .env.example .env
 # Edit the .env file with your database credentials
 # Example configuration:
 DATABASE_URL=postgresql://username:password@localhost:5432/smartworkforce
+DB_SCHEMA=smartai          # required - the Postgres schema for this app's tables
 JWT_SECRET=your-super-secret-jwt-key-here
 PORT=3000
 NODE_ENV=development
@@ -58,29 +59,25 @@ NODE_ENV=development
 
 ### 4. Setup Database
 
-#### Option 1: Using Migration Scripts (Recommended)
-```bash
-# Run database migrations (creates all tables)
-npm run migrate
+The schema is created by the app itself - the Sequelize models create the tables, then the
+versioned SQL migrations in `src/database/migrations/` add indexes and the migration-owned
+tables (outbox, KPIs, reports). Both commands are safe to run again: they only add what's missing.
+On a brand-new database they also create the `DB_SCHEMA` schema - that needs the CREATE
+privilege on the database; on a shared server where the app user doesn't have it, have the
+DBA run `CREATE SCHEMA smartai` once.
 
-# Seed the database with demo data
-npm run seed
+```bash
+# Create the DB_SCHEMA schema if it's missing, create/upgrade all tables + apply migrations,
+# and add demo data if the database is empty
+npm run db:init
+
+# ...or the same without demo data (this is what the k8s db-sync Job runs)
+npm run db:sync
 ```
 
-#### Option 2: Using Direct SQL Schema
-If you prefer to set up the database directly:
-```bash
-# Connect to PostgreSQL and run the schema file
-psql -U username -d smartworkforce -f ../database/schema.sql
-```
-
-The `schema.sql` file contains:
-- ✅ Complete table structure with proper indexes
-- ✅ Multi-tenant architecture with foreign keys
-- ✅ Performance-optimized indexes for time-series data
-- ✅ Database functions and triggers
-- ✅ Views for common queries
-- ✅ Demo data insertion
+`database/schema.sql` is a **generated snapshot** of the resulting schema, for reading only -
+do not run it. After a model or migration change, refresh it with `npm run db:schema` and
+commit it together with the change.
 
 ### 5. Start Backend Server
 ```bash

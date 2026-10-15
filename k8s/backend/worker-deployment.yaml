@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: backend-worker
+
+# Same image as the API, different command: runs src/workers/index.js (Kafka consumers +
+# scheduled jobs) instead of the HTTP server. Scales independently of the API - the
+# notification consumer group can use up to one replica per topic partition (3).
+spec:
+  replicas: 1
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  selector:
+    matchLabels:
+      app: backend-worker
+
+  template:
+    metadata:
+      labels:
+        app: backend-worker
+
+    spec:
+      # Matches the 25s force-exit in src/workers/index.js: SIGTERM -> finish in-flight
+      # messages -> disconnect consumers -> exit
+      terminationGracePeriodSeconds: 30
+      automountServiceAccountToken: false
+
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox
+          command: ["sh", "-c", "until nc -z -v -w30 10.2.5.143 5432; do echo 'Waiting for Postgres...'; sleep 2; done"]
+
+      containers:
+        - name: worker
+          image: anshumanfatpipe/smartai-backend:v2
+          imagePullPolicy: IfNotPresent
+          command: ["node", "src/workers/index.js"]
+
+          env:
+            - name: WORKERS
+              value: "all"
+            - name: WORKER_HEALTH_PORT
+              value: "8081"
+
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: backend-secret
+
+          ports:
+            - name: health
+              containerPort: 8081
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+
+          # Ready only once every consumer has joined its Kafka consumer group
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 2
+
+          # Process alive - deliberately does NOT depend on Kafka, so a Kafka outage
+          # doesn't make Kubernetes restart-loop the worker
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: health
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
+            timeoutSeconds: 2

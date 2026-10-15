@@ -11,6 +11,11 @@ k8s/backend/secret.yaml
 k8s/**/secret.yaml
 k8s/**/*secret*.yaml
 
+# Kubeconfig files - contain real cluster admin private keys, never commit
+jenkins-kubeconfig.yaml
+*kubeconfig*.yaml
+*kubeconfig*.yml
+
 # Any key/cert material generated locally (e.g. the TLS lesson)
 *.key
 *.pem

@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
+import { todayLocal } from '../../../core/utils/date.util';
 
 export interface AttendanceRecord {
   id: string;
@@ -186,7 +187,7 @@ export class AttendanceService {
    * Check if user is checked in today
    */
   isCheckedInToday(): boolean {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayLocal();
     const records = this.getCurrentRecords();
     const todayRecord = records.find(r => r.date === today);
     return todayRecord?.checkInTime != null && todayRecord?.checkOutTime == null;

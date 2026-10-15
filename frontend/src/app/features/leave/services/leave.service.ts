@@ -147,7 +147,8 @@ export class LeaveService {
    * Get leave balances
    */
   getLeaveBalances(): Observable<LeaveBalance[]> {
-    return this.http.get<LeaveBalance[]>(`${this.apiUrl}/leave/balances`);
+    return this.http.get<{ success: boolean, data: LeaveBalance[] }>(`${this.apiUrl}/leave/balances`)
+      .pipe(map(response => response.data));
   }
 
   /**

@@ -14,6 +14,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { AuthService } from '../../core/services/auth.service';
 import { WfhService, WfhRequest, WfhQuota } from './services/wfh.service';
+import { toLocalDateString } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-wfh',
@@ -95,8 +96,8 @@ export class WfhComponent implements OnInit {
     const { startDate, endDate, isHalfDay, halfDayType, reason } = this.wfhForm.value;
 
     this.wfhService.applyWfh({
-      startDate: this.toDateString(startDate),
-      endDate: this.toDateString(endDate),
+      startDate: toLocalDateString(startDate),
+      endDate: toLocalDateString(endDate),
       isHalfDay,
       halfDayType: isHalfDay ? halfDayType : undefined,
       reason
@@ -131,10 +132,5 @@ export class WfhComponent implements OnInit {
       case 'REJECTED': return 'warn';
       default: return '';
     }
-  }
-
-  private toDateString(value: Date | string): string {
-    const d = new Date(value);
-    return d.toISOString().split('T')[0];
   }
 }

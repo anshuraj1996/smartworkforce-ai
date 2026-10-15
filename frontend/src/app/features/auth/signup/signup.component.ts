@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
+import { todayLocal } from '../../../core/utils/date.util';
 
 interface Manager {
   id: string;
@@ -66,7 +67,7 @@ export class SignupComponent implements OnInit {
       department: ['', [Validators.required]],
       designation: ['', [Validators.required]],
       managerId: [null],
-      joinDate: [new Date().toISOString().split('T')[0], [Validators.required]]
+      joinDate: [todayLocal(), [Validators.required]]
     }, {
       validators: this.passwordMatchValidator
     });
@@ -127,7 +128,7 @@ export class SignupComponent implements OnInit {
         this.successMessage = response.message || 'Employee registered successfully!';
         this.signupForm.reset({
           role: 'EMPLOYEE',
-          joinDate: new Date().toISOString().split('T')[0]
+          joinDate: todayLocal()
         });
         
         // Redirect after 2 seconds

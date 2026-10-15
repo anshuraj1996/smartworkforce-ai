@@ -1,4 +1,6 @@
+const { QueryTypes } = require('sequelize');
 const { sequelize } = require('../database/config');
+const { ensureSchema } = require('../database/schema');
 
 // Import all models
 const Organization = require('./Organization');
@@ -12,6 +14,12 @@ const WfhRequest = require('./WfhRequest');
 const Notification = require('./Notification');
 const Announcement = require('./Announcement');
 const Certification = require('./Certification');
+const RegularizationRequest = require('./RegularizationRequest');
+const Policy = require('./Policy');
+const PolicyAcknowledgement = require('./PolicyAcknowledgement');
+const LeavePolicy = require('./LeavePolicy');
+const JobOpening = require('./JobOpening');
+const Referral = require('./Referral');
 
 // Define associations
 const defineAssociations = () => {
@@ -251,6 +259,157 @@ const defineAssociations = () => {
     foreignKey: 'userId',
     as: 'user'
   });
+
+  // RegularizationRequest associations
+  Organization.hasMany(RegularizationRequest, {
+    foreignKey: 'organizationId',
+    as: 'regularizationRequests',
+    onDelete: 'CASCADE'
+  });
+
+  User.hasMany(RegularizationRequest, {
+    foreignKey: 'userId',
+    as: 'regularizationRequests',
+    onDelete: 'CASCADE'
+  });
+
+  RegularizationRequest.belongsTo(Organization, {
+    foreignKey: 'organizationId',
+    as: 'organization'
+  });
+
+  RegularizationRequest.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'user'
+  });
+
+  RegularizationRequest.belongsTo(User, {
+    foreignKey: 'approvedBy',
+    as: 'approver'
+  });
+
+  RegularizationRequest.belongsTo(AttendanceLog, {
+    foreignKey: 'attendanceLogId',
+    as: 'attendanceLog'
+  });
+
+  // Policy associations
+  Organization.hasMany(Policy, {
+    foreignKey: 'organizationId',
+    as: 'policies',
+    onDelete: 'CASCADE'
+  });
+
+  Policy.belongsTo(Organization, {
+    foreignKey: 'organizationId',
+    as: 'organization'
+  });
+
+  Policy.belongsTo(User, {
+    foreignKey: 'createdBy',
+    as: 'author'
+  });
+
+  Policy.hasMany(PolicyAcknowledgement, {
+    foreignKey: 'policyId',
+    as: 'acknowledgements',
+    onDelete: 'CASCADE'
+  });
+
+  PolicyAcknowledgement.belongsTo(Policy, {
+    foreignKey: 'policyId',
+    as: 'policy'
+  });
+
+  PolicyAcknowledgement.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'user'
+  });
+
+  User.hasMany(PolicyAcknowledgement, {
+    foreignKey: 'userId',
+    as: 'policyAcknowledgements',
+    onDelete: 'CASCADE'
+  });
+
+  // LeavePolicy associations
+  Organization.hasMany(LeavePolicy, {
+    foreignKey: 'organizationId',
+    as: 'leavePolicies',
+    onDelete: 'CASCADE'
+  });
+
+  LeavePolicy.belongsTo(Organization, {
+    foreignKey: 'organizationId',
+    as: 'organization'
+  });
+
+  // Hiring associations
+  Organization.hasMany(JobOpening, {
+    foreignKey: 'organizationId',
+    as: 'jobOpenings',
+    onDelete: 'CASCADE'
+  });
+
+  JobOpening.belongsTo(Organization, {
+    foreignKey: 'organizationId',
+    as: 'organization'
+  });
+
+  JobOpening.belongsTo(User, {
+    foreignKey: 'createdBy',
+    as: 'creator'
+  });
+
+  JobOpening.hasMany(Referral, {
+    foreignKey: 'jobOpeningId',
+    as: 'referrals',
+    onDelete: 'CASCADE'
+  });
+
+  Referral.belongsTo(JobOpening, {
+    foreignKey: 'jobOpeningId',
+    as: 'jobOpening'
+  });
+
+  Referral.belongsTo(User, {
+    foreignKey: 'referredBy',
+    as: 'referrer'
+  });
+
+  User.hasMany(Referral, {
+    foreignKey: 'referredBy',
+    as: 'referrals'
+  });
+};
+
+// sequelize.sync() only creates missing tables - it never adds values to a Postgres ENUM that
+// already exists, so new values on existing columns are added here before syncing. On a fresh
+// database the type doesn't exist yet and sync creates it with every value.
+const ENUM_ADDITIONS = [
+  {
+    table: 'audit_logs',
+    column: 'entity_type',
+    values: ['REGULARIZATION_REQUEST', 'POLICY', 'LEAVE_POLICY', 'JOB_OPENING', 'REFERRAL']
+  }
+];
+
+const ensureEnumValues = async () => {
+  const schema = sequelize.options.define.schema || 'public';
+
+  for (const { table, column, values } of ENUM_ADDITIONS) {
+    const typeName = `enum_${table}_${column}`;
+    const [rows] = await sequelize.query(
+      'SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace WHERE t.typname = :typeName AND n.nspname = :schema',
+      { replacements: { typeName, schema } }
+    );
+
+    if (rows.length === 0) continue;
+
+    for (const value of values) {
+      await sequelize.query(`ALTER TYPE "${schema}"."${typeName}" ADD VALUE IF NOT EXISTS '${value}'`);
+    }
+  }
 };
 
 // Initialize associations
@@ -270,12 +429,27 @@ module.exports = {
   Notification,
   Announcement,
   Certification,
+  RegularizationRequest,
+  Policy,
+  PolicyAcknowledgement,
+  LeavePolicy,
+  JobOpening,
+  Referral,
 
   // Helper function to sync all models
   syncDatabase: async (options = {}) => {
     try {
       await sequelize.authenticate();
       console.log('Database connection established successfully.');
+
+      // A brand-new database has no app schema yet - create it before any table
+      const created = await ensureSchema(
+        (sql, bind) => sequelize.query(sql, { bind, type: QueryTypes.SELECT }),
+        sequelize.options.define.schema
+      );
+      if (created) console.log(`Created schema "${sequelize.options.define.schema}".`);
+
+      await ensureEnumValues();
       
       if (options.force) {
         console.log('Dropping and recreating all tables...');

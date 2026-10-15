@@ -1,0 +1,97 @@
+<div class="regularization-page">
+  <h1>Attendance Regularization</h1>
+  <p class="subtitle">Forgot to punch in or out, or the recorded time is wrong? Request a correction for any day in the last 30 days.</p>
+
+  <mat-card class="form-card">
+    <h2>New Request</h2>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="row">
+        <mat-form-field appearance="outline">
+          <mat-label>Date</mat-label>
+          <input matInput [matDatepicker]="datePicker" formControlName="date" [min]="minDate" [max]="maxDate">
+          <mat-datepicker-toggle matIconSuffix [for]="datePicker"></mat-datepicker-toggle>
+          <mat-datepicker #datePicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>What went wrong?</mat-label>
+          <mat-select formControlName="requestType">
+            <mat-option *ngFor="let t of requestTypes" [value]="t.value">{{ t.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div class="row">
+        <mat-form-field appearance="outline" *ngIf="showCheckIn">
+          <mat-label>Correct check-in time</mat-label>
+          <input matInput type="time" formControlName="requestedCheckIn">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" *ngIf="showCheckOut">
+          <mat-label>Correct check-out time</mat-label>
+          <input matInput type="time" formControlName="requestedCheckOut">
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Reason</mat-label>
+        <textarea matInput rows="2" formControlName="reason"></textarea>
+      </mat-form-field>
+
+      <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+      <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || submitting">
+        Submit Request
+      </button>
+    </form>
+  </mat-card>
+
+  <mat-card class="list-card">
+    <h2>My Requests</h2>
+    <div class="request-row" *ngFor="let req of myRequests">
+      <div class="request-main">
+        <div class="request-date">{{ req.date }} · {{ typeLabel(req.requestType) }}</div>
+        <div class="request-times">
+          <span *ngIf="req.requestedCheckIn">In {{ req.requestedCheckIn | slice:0:5 }}</span>
+          <span *ngIf="req.requestedCheckOut">Out {{ req.requestedCheckOut | slice:0:5 }}</span>
+        </div>
+        <div class="request-reason">{{ req.reason }}</div>
+        <div class="request-reason rejection" *ngIf="req.rejectionReason">Rejected: {{ req.rejectionReason }}</div>
+      </div>
+      <div class="request-actions">
+        <mat-chip [color]="statusColor(req.status)" selected>{{ req.status }}</mat-chip>
+        <button mat-button *ngIf="req.status === 'PENDING'" (click)="cancelRequest(req)">Cancel</button>
+      </div>
+    </div>
+    <p class="empty-state" *ngIf="myRequests.length === 0">No regularization requests yet</p>
+  </mat-card>
+
+  <mat-card class="list-card" *ngIf="isManagerOrAbove">
+    <h2>Pending Approvals</h2>
+    <div class="request-row" *ngFor="let req of pendingRequests">
+      <div class="request-main">
+        <div class="request-date">{{ req.user?.name }} · {{ req.date }} · {{ typeLabel(req.requestType) }}</div>
+        <div class="request-times">
+          <span>
+            Recorded:
+            {{ req.attendanceLog?.checkInTime ? (req.attendanceLog?.checkInTime | slice:0:5) : '—' }}
+            →
+            {{ req.attendanceLog?.checkOutTime ? (req.attendanceLog?.checkOutTime | slice:0:5) : '—' }}
+          </span>
+          <span>
+            Requested:
+            {{ req.requestedCheckIn ? (req.requestedCheckIn | slice:0:5) : 'unchanged' }}
+            →
+            {{ req.requestedCheckOut ? (req.requestedCheckOut | slice:0:5) : 'unchanged' }}
+          </span>
+        </div>
+        <div class="request-reason">{{ req.reason }}</div>
+      </div>
+      <div class="request-actions">
+        <button mat-icon-button color="primary" (click)="approveRequest(req)"><mat-icon>check</mat-icon></button>
+        <button mat-icon-button color="warn" (click)="rejectRequest(req)"><mat-icon>close</mat-icon></button>
+      </div>
+    </div>
+    <p class="empty-state" *ngIf="pendingRequests.length === 0">Nothing pending</p>
+  </mat-card>
+</div>

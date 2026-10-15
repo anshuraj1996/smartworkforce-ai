@@ -114,9 +114,6 @@ const User = sequelize.define('User', {
       fields: ['email']
     },
     {
-      fields: ['role']
-    },
-    {
       fields: ['manager_id']
     },
     {

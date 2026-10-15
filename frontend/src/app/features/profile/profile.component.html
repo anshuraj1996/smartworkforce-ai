@@ -642,6 +642,19 @@
         </div>
       </mat-tab>
 
+      <!-- Organization settings (HR / Admin) -->
+      <mat-tab *ngIf="isHR() || isAdmin()" label="Organization">
+        <ng-template mat-tab-label>
+          <mat-icon class="mr-2">domain</mat-icon>
+          Organization
+        </ng-template>
+        <ng-template matTabContent>
+          <div class="tab-content">
+            <app-organization-settings [isAdmin]="isAdmin()"></app-organization-settings>
+          </div>
+        </ng-template>
+      </mat-tab>
+
       <!-- Account Management Tab -->
       <mat-tab label="Account">
         <ng-template mat-tab-label>

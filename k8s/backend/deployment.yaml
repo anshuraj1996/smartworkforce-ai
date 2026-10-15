@@ -30,7 +30,7 @@ spec:
       containers:
         - name: backend
           image: anshumanfatpipe/smartai-backend:v2
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
 
           ports:
             - containerPort: 3000

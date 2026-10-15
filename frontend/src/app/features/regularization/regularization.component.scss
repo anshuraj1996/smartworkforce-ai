@@ -1,0 +1,87 @@
+.regularization-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 800px;
+}
+
+.subtitle {
+  margin: -8px 0 0;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+}
+
+mat-card {
+  padding: 16px;
+}
+
+.form-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.error-message {
+  color: #d32f2f;
+  font-size: 13px;
+}
+
+.request-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.request-row:last-child {
+  border-bottom: none;
+}
+
+.request-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.request-date {
+  font-weight: 600;
+}
+
+.request-times {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+}
+
+.request-reason {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+}
+
+.rejection {
+  color: #d32f2f;
+}
+
+.request-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.empty-state {
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 14px;
+}

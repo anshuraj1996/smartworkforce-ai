@@ -1,50 +1,43 @@
-const { Notification, User } = require('../models');
-const { cacheGet, cacheSet, cacheDel } = require('../utils/cache');
+const repositories = require('../repositories');
+const cache = require('../utils/cache');
+const { CACHE_KEYS, CACHE_TTL } = require('../utils/cacheKeys');
+const { NotFoundError } = require('../utils/errors');
 
-const UNREAD_COUNT_TTL_SECONDS = 30;
-const unreadCountKey = (userId) => `notif:unread:${userId}`;
+const unreadCountKey = CACHE_KEYS.unreadCount;
 
 class NotificationService {
-  // Create a single notification
-  static async notify(userId, organizationId, { category, title, message, link = null, metadata = {} }) {
+  constructor({ notificationRepository, cache }) {
+    this.notificationRepository = notificationRepository;
+    this.cache = cache;
+  }
+
+  // A notification failing to save must never take down the calling flow (leave approval, etc.)
+  async notify(userId, organizationId, { category, title, message, link = null, metadata = {} }) {
     try {
-      const created = await Notification.create({
-        organizationId,
-        userId,
-        category,
-        title,
-        message,
-        link,
-        metadata
-      });
-      await cacheDel(unreadCountKey(userId));
+      // Same duplicate-safe insert as notifyMany
+      const [created] = await this.notificationRepository.bulkCreate([{
+        organizationId, userId, category, title, message, link, metadata
+      }]);
+      await this.cache.cacheDel(unreadCountKey(userId));
       return created;
     } catch (error) {
       console.error('Create notification error:', error);
-      // A notification failing to save shouldn't take down the calling flow (leave approval, etc.)
       return null;
     }
   }
 
-  // Send the same notification to a batch of users (e.g. everyone in an org for an announcement)
-  static async notifyMany(userIds, organizationId, { category, title, message, link = null, metadata = {} }) {
+  // Same notification to a batch of users (e.g. everyone in an org for an announcement)
+  async notifyMany(userIds, organizationId, { category, title, message, link = null, metadata = {} }) {
     if (!userIds || userIds.length === 0) {
       return [];
     }
 
     try {
-      const rows = userIds.map(userId => ({
-        organizationId,
-        userId,
-        category,
-        title,
-        message,
-        link,
-        metadata
-      }));
-
-      const created = await Notification.bulkCreate(rows);
-      await Promise.all(userIds.map(userId => cacheDel(unreadCountKey(userId))));
+      const created = await this.notificationRepository.bulkCreate(userIds.map(userId => ({
+        organizationId, userId, category, title, message, link, metadata
+      })));
+      // One DEL for every recipient's badge count
+      await this.cache.cacheDel(userIds.map(unreadCountKey));
       return created;
     } catch (error) {
       console.error('Bulk notification error:', error);
@@ -52,88 +45,51 @@ class NotificationService {
     }
   }
 
-  static async getForUser(userId, filters = {}) {
-    try {
-      const { category, unreadOnly, page = 1, limit = 20 } = filters;
-      const whereClause = { userId };
+  async getForUser(userId, { category, unreadOnly, page = 1, limit = 20 } = {}) {
+    const { count, rows } = await this.notificationRepository.findForUser(userId, { category, unreadOnly, page, limit });
 
-      if (category) {
-        whereClause.category = category;
-      }
-
-      if (unreadOnly) {
-        whereClause.isRead = false;
-      }
-
-      const { count, rows } = await Notification.findAndCountAll({
-        where: whereClause,
-        order: [['createdAt', 'DESC']],
-        limit: parseInt(limit),
-        offset: (parseInt(page) - 1) * parseInt(limit)
-      });
-
-      return {
-        data: rows,
-        total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(count / parseInt(limit))
-      };
-    } catch (error) {
-      console.error('Get notifications error:', error);
-      throw new Error('Failed to get notifications');
-    }
+    return {
+      data: rows,
+      total: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit)
+    };
   }
 
-  // Polled frequently for the bell-icon badge, so this one is worth caching -
-  // short TTL plus explicit invalidation whenever a notification is created or read.
-  static async getUnreadCount(userId) {
-    try {
-      const cached = await cacheGet(unreadCountKey(userId));
-      if (cached !== null) {
-        return cached;
-      }
-
-      const count = await Notification.count({ where: { userId, isRead: false } });
-      await cacheSet(unreadCountKey(userId), count, UNREAD_COUNT_TTL_SECONDS);
-      return count;
-    } catch (error) {
-      console.error('Get unread count error:', error);
-      throw new Error('Failed to get unread notification count');
+  // Polled for the bell-icon badge, so cached briefly and invalidated on create/read
+  async getUnreadCount(userId) {
+    const cached = await this.cache.cacheGet(unreadCountKey(userId));
+    if (cached !== null) {
+      return cached;
     }
+
+    const count = await this.notificationRepository.countUnread(userId);
+    await this.cache.cacheSet(unreadCountKey(userId), count, CACHE_TTL.unreadCount);
+    return count;
   }
 
-  static async markAsRead(notificationId, userId) {
-    try {
-      const notification = await Notification.findOne({ where: { id: notificationId, userId } });
+  async markAsRead(notificationId, userId) {
+    const notification = await this.notificationRepository.findOwned(notificationId, userId);
 
-      if (!notification) {
-        throw new Error('Notification not found');
-      }
-
-      const updated = await notification.markAsRead();
-      await cacheDel(unreadCountKey(userId));
-      return updated;
-    } catch (error) {
-      console.error('Mark notification read error:', error);
-      throw new Error(error.message || 'Failed to update notification');
+    if (!notification) {
+      throw new NotFoundError('Notification not found');
     }
+
+    const updated = await notification.markAsRead();
+    await this.cache.cacheDel(unreadCountKey(userId));
+    return updated;
   }
 
-  static async markAllAsRead(userId) {
-    try {
-      const [updatedCount] = await Notification.update(
-        { isRead: true, readAt: new Date() },
-        { where: { userId, isRead: false } }
-      );
-
-      await cacheDel(unreadCountKey(userId));
-      return { updatedCount };
-    } catch (error) {
-      console.error('Mark all notifications read error:', error);
-      throw new Error('Failed to update notifications');
-    }
+  async markAllAsRead(userId) {
+    const updatedCount = await this.notificationRepository.markAllRead(userId);
+    await this.cache.cacheDel(unreadCountKey(userId));
+    return { updatedCount };
   }
 }
 
-module.exports = NotificationService;
+module.exports = new NotificationService({
+  notificationRepository: repositories.notificationRepository,
+  cache
+});
+module.exports.NotificationService = NotificationService;

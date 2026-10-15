@@ -1,64 +1,17 @@
-const { Kafka } = require('kafkajs');
-const { validateEvent } = require('./contracts');
-
-// Same "infrastructure is not a source of truth" philosophy as the Redis cache wrapper -
-// a Kafka outage (or a malformed event) must never break check-in/leave/WFH/announcement
-// flows, since publishing happens after the real DB write already succeeded. publishEvent()
-// always resolves, logs on failure, and never throws.
-
-const kafka = new Kafka({
-  clientId: 'smartworkforce-backend',
-  brokers: [process.env.KAFKA_BROKER || 'localhost:9092'],
-  retry: { retries: 2 }
-});
-
-const producer = kafka.producer();
-let connected = false;
-let connecting = null;
-
-async function ensureConnected() {
-  if (connected) return true;
-  if (!connecting) {
-    connecting = producer.connect()
-      .then(() => {
-        connected = true;
-        console.log('Kafka producer connected');
-      })
-      .catch((err) => {
-        console.error('Kafka producer connection failed, events will be dropped:', err.message);
-      })
-      .finally(() => {
-        connecting = null;
-      });
-  }
-  await connecting;
-  return connected;
+// Kafka producers - used only by the worker process now. The API never talks to Kafka: services
+// write events to the outbox_events table (events/outbox.js) inside their transaction, and the
+// outbox relay worker publishes them. So the API runs with Kafka down, and no event is lost.
+//
+// Idempotent producer: if a send's acknowledgement is lost and the client retries, the broker
+// recognises the duplicate (producer id + sequence number) and writes it only once. Requires
+// acks=all (kafkajs's default) and at most one in-flight request per connection.
+//
+// kafkajs logs "Limiting retries for the idempotent producer may invalidate EoS guarantees"
+// because the client retries a send only a few times (kafkaClient.js). That's deliberate: the
+// outbox relay retries failed batches itself, forever, with backoff - so a short client-level
+// retry just hands control back to the relay loop sooner.
+function createIdempotentProducer(kafka) {
+  return kafka.producer({ idempotent: true, maxInFlightRequests: 1 });
 }
 
-// Kick off the connection at startup rather than waiting for the first publish call.
-ensureConnected();
-
-async function publishEvent(topic, payload) {
-  try {
-    validateEvent(topic, payload);
-  } catch (error) {
-    console.error('Event contract violation, not publishing:', error.message);
-    return false;
-  }
-
-  const ok = await ensureConnected();
-  if (!ok) return false;
-
-  try {
-    await producer.send({
-      topic,
-      messages: [{ key: payload.organizationId, value: JSON.stringify(payload) }]
-    });
-    return true;
-  } catch (error) {
-    console.error(`Failed to publish event to ${topic}:`, error.message);
-    return false;
-  }
-}
-
-module.exports = { publishEvent };
+module.exports = { createIdempotentProducer };

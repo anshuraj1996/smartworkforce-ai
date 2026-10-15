@@ -37,6 +37,21 @@ export const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
+    path: 'regularization',
+    loadComponent: () => import('./features/regularization/regularization.component').then(m => m.RegularizationComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'policies',
+    loadComponent: () => import('./features/policies/policies.component').then(m => m.PoliciesComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'hiring',
+    loadComponent: () => import('./features/hiring/hiring.component').then(m => m.HiringComponent),
+    canActivate: [AuthGuard]
+  },
+  {
     path: 'calendar',
     loadComponent: () => import('./features/calendar/calendar.component').then(m => m.CalendarComponent),
     canActivate: [AuthGuard]

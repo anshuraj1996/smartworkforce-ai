@@ -1,0 +1,232 @@
+<div class="hiring-page">
+  <h1>Hiring &amp; Referrals</h1>
+
+  <div class="success-message" *ngIf="referralSuccess">
+    <mat-icon>check_circle</mat-icon> {{ referralSuccess }}
+  </div>
+
+  <mat-tab-group animationDuration="0ms">
+    <!-- Open positions: everyone -->
+    <mat-tab label="Open Positions ({{ openJobs.length }})">
+      <div class="tab-body">
+        <mat-card class="job-card" *ngFor="let job of openJobs">
+          <div class="job-header">
+            <div>
+              <h3>{{ job.title }}</h3>
+              <div class="job-meta">
+                <span *ngIf="job.department"><mat-icon>business</mat-icon>{{ job.department }}</span>
+                <span *ngIf="job.location"><mat-icon>place</mat-icon>{{ job.location }}</span>
+                <span><mat-icon>work</mat-icon>{{ employmentLabel(job.employmentType) }}</span>
+                <span *ngIf="experienceLabel(job)"><mat-icon>timeline</mat-icon>{{ experienceLabel(job) }}</span>
+                <span><mat-icon>group</mat-icon>{{ job.openings }} opening{{ job.openings > 1 ? 's' : '' }}</span>
+              </div>
+            </div>
+            <div class="bonus" *ngIf="job.referralBonus">
+              Referral bonus<br><strong>{{ job.referralBonus | number:'1.0-0' }}</strong>
+            </div>
+          </div>
+
+          <p class="job-description">{{ job.description }}</p>
+
+          <button mat-raised-button color="primary" *ngIf="referringJob?.id !== job.id" (click)="startReferral(job)">
+            <mat-icon>person_add</mat-icon> Refer a candidate
+          </button>
+
+          <!-- Inline referral form -->
+          <form *ngIf="referringJob?.id === job.id" [formGroup]="referralForm" (ngSubmit)="submitReferral()" class="referral-form">
+            <div class="row">
+              <mat-form-field appearance="outline">
+                <mat-label>Candidate name</mat-label>
+                <input matInput formControlName="candidateName">
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Candidate email</mat-label>
+                <input matInput type="email" formControlName="candidateEmail">
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Phone</mat-label>
+                <input matInput formControlName="candidatePhone">
+              </mat-form-field>
+            </div>
+            <div class="row">
+              <mat-form-field appearance="outline" class="grow">
+                <mat-label>Resume / LinkedIn URL</mat-label>
+                <input matInput formControlName="resumeUrl" placeholder="https://...">
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>How do you know them?</mat-label>
+                <input matInput formControlName="relationship" placeholder="Ex-colleague, friend...">
+              </mat-form-field>
+            </div>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Why are they a good fit?</mat-label>
+              <textarea matInput rows="2" formControlName="notes"></textarea>
+            </mat-form-field>
+
+            <div class="error-message" *ngIf="referralError">{{ referralError }}</div>
+
+            <div class="form-actions">
+              <button mat-button type="button" (click)="referringJob = null">Cancel</button>
+              <button mat-raised-button color="primary" type="submit" [disabled]="referralForm.invalid || submitting">Submit referral</button>
+            </div>
+          </form>
+        </mat-card>
+        <p class="empty-state" *ngIf="openJobs.length === 0">No open positions right now</p>
+      </div>
+    </mat-tab>
+
+    <!-- My referrals: everyone -->
+    <mat-tab label="My Referrals ({{ myReferrals.length }})">
+      <div class="tab-body">
+        <mat-card>
+          <div class="list-row" *ngFor="let ref of myReferrals">
+            <div class="list-main">
+              <div class="list-title">{{ ref.candidateName }} · {{ ref.jobOpening?.title }}</div>
+              <div class="list-sub">{{ ref.candidateEmail }} · referred {{ ref.createdAt | date:'mediumDate' }}</div>
+              <div class="list-sub" *ngIf="ref.statusNote">Note: {{ ref.statusNote }}</div>
+            </div>
+            <div class="list-actions">
+              <mat-chip [color]="statusColor(ref.status)" selected>{{ ref.status }}</mat-chip>
+              <button mat-button *ngIf="nextStatuses(ref).includes('WITHDRAWN')" (click)="withdraw(ref)">Withdraw</button>
+            </div>
+          </div>
+          <p class="empty-state" *ngIf="myReferrals.length === 0">You haven't referred anyone yet</p>
+        </mat-card>
+      </div>
+    </mat-tab>
+
+    <!-- HR: manage job openings -->
+    <mat-tab label="Manage Jobs" *ngIf="isHrOrAbove">
+      <div class="tab-body">
+        <button mat-raised-button color="primary" *ngIf="!showJobForm" (click)="openCreateJob()">
+          <mat-icon>add</mat-icon> Post a job
+        </button>
+
+        <mat-card *ngIf="showJobForm">
+          <h2>{{ editingJob ? 'Edit Job Opening' : 'New Job Opening' }}</h2>
+          <form [formGroup]="jobForm" (ngSubmit)="saveJob()" class="job-form">
+            <div class="row">
+              <mat-form-field appearance="outline" class="grow">
+                <mat-label>Job title</mat-label>
+                <input matInput formControlName="title">
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Department</mat-label>
+                <input matInput formControlName="department">
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Location</mat-label>
+                <input matInput formControlName="location">
+              </mat-form-field>
+            </div>
+            <div class="row">
+              <mat-form-field appearance="outline">
+                <mat-label>Type</mat-label>
+                <mat-select formControlName="employmentType">
+                  <mat-option *ngFor="let t of employmentTypes" [value]="t.value">{{ t.label }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="narrow">
+                <mat-label>Min exp (yrs)</mat-label>
+                <input matInput type="number" min="0" formControlName="experienceMin">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="narrow">
+                <mat-label>Max exp (yrs)</mat-label>
+                <input matInput type="number" min="0" formControlName="experienceMax">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="narrow">
+                <mat-label>Openings</mat-label>
+                <input matInput type="number" min="1" formControlName="openings">
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Referral bonus</mat-label>
+                <input matInput type="number" min="0" formControlName="referralBonus">
+              </mat-form-field>
+            </div>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Description</mat-label>
+              <textarea matInput rows="5" formControlName="description"></textarea>
+            </mat-form-field>
+
+            <div class="error-message" *ngIf="jobError">{{ jobError }}</div>
+
+            <div class="form-actions">
+              <button mat-button type="button" (click)="showJobForm = false">Cancel</button>
+              <button mat-raised-button color="primary" type="submit" [disabled]="jobForm.invalid || submitting">
+                {{ editingJob ? 'Save changes' : 'Post job' }}
+              </button>
+            </div>
+          </form>
+        </mat-card>
+
+        <mat-card>
+          <div class="list-row" *ngFor="let job of jobs">
+            <div class="list-main">
+              <div class="list-title">{{ job.title }} <span class="muted" *ngIf="job.department">· {{ job.department }}</span></div>
+              <div class="list-sub">
+                {{ job.referralCount || 0 }} referral{{ job.referralCount === 1 ? '' : 's' }}
+                <span *ngIf="job.referralsByStatus?.HIRED"> · {{ job.referralsByStatus?.HIRED }} hired</span>
+                · {{ job.openings }} opening{{ job.openings > 1 ? 's' : '' }}
+              </div>
+            </div>
+            <div class="list-actions">
+              <mat-chip [color]="statusColor(job.status)" selected>{{ job.status }}</mat-chip>
+              <button mat-icon-button [matMenuTriggerFor]="jobMenu"><mat-icon>more_vert</mat-icon></button>
+              <mat-menu #jobMenu="matMenu">
+                <button mat-menu-item (click)="openEditJob(job)"><mat-icon>edit</mat-icon>Edit</button>
+                <button mat-menu-item *ngIf="job.status !== 'OPEN'" (click)="setJobStatus(job, 'OPEN')"><mat-icon>play_arrow</mat-icon>Reopen</button>
+                <button mat-menu-item *ngIf="job.status === 'OPEN'" (click)="setJobStatus(job, 'ON_HOLD')"><mat-icon>pause</mat-icon>Put on hold</button>
+                <button mat-menu-item *ngIf="job.status !== 'CLOSED'" (click)="setJobStatus(job, 'CLOSED')"><mat-icon>block</mat-icon>Close</button>
+              </mat-menu>
+            </div>
+          </div>
+          <p class="empty-state" *ngIf="jobs.length === 0">No job openings posted yet</p>
+        </mat-card>
+      </div>
+    </mat-tab>
+
+    <!-- HR: referral pipeline -->
+    <mat-tab label="Referral Pipeline" *ngIf="isHrOrAbove">
+      <div class="tab-body">
+        <div class="row">
+          <mat-form-field appearance="outline">
+            <mat-label>Position</mat-label>
+            <mat-select [value]="pipelineJobFilter" (selectionChange)="pipelineJobFilter = $event.value; loadAllReferrals()">
+              <mat-option value="">All positions</mat-option>
+              <mat-option *ngFor="let job of jobs" [value]="job.id">{{ job.title }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Stage</mat-label>
+            <mat-select [value]="pipelineStatusFilter" (selectionChange)="pipelineStatusFilter = $event.value; loadAllReferrals()">
+              <mat-option value="">All stages</mat-option>
+              <mat-option *ngFor="let s of referralStatuses" [value]="s">{{ s }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <mat-card>
+          <div class="list-row" *ngFor="let ref of allReferrals">
+            <div class="list-main">
+              <div class="list-title">{{ ref.candidateName }} · {{ ref.jobOpening?.title }}</div>
+              <div class="list-sub">
+                {{ ref.candidateEmail }}<span *ngIf="ref.candidatePhone"> · {{ ref.candidatePhone }}</span>
+                · referred by {{ ref.referrer?.name }}<span *ngIf="ref.relationship"> ({{ ref.relationship }})</span>
+              </div>
+              <div class="list-sub" *ngIf="ref.notes">"{{ ref.notes }}"</div>
+              <a class="list-sub" *ngIf="ref.resumeUrl" [href]="ref.resumeUrl" target="_blank" rel="noopener noreferrer">View resume</a>
+            </div>
+            <div class="list-actions">
+              <mat-chip [color]="statusColor(ref.status)" selected>{{ ref.status }}</mat-chip>
+              <button mat-stroked-button *ngIf="nextStatuses(ref).length" [matMenuTriggerFor]="moveMenu">Move to</button>
+              <mat-menu #moveMenu="matMenu">
+                <button mat-menu-item *ngFor="let s of nextStatuses(ref)" (click)="moveReferral(ref, s)">{{ s }}</button>
+              </mat-menu>
+            </div>
+          </div>
+          <p class="empty-state" *ngIf="allReferrals.length === 0">No referrals match these filters</p>
+        </mat-card>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>

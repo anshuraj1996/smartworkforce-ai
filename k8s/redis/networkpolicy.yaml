@@ -17,6 +17,10 @@ spec:
         - podSelector:
             matchLabels:
               app: backend
+        # The worker needs Redis too (birthday-job claims, notification badge counts)
+        - podSelector:
+            matchLabels:
+              app: backend-worker
       ports:
         - protocol: TCP
           port: 6379

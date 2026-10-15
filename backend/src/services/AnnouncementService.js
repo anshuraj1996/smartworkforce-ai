@@ -1,19 +1,26 @@
-const { Announcement, User } = require('../models');
-const { Op } = require('sequelize');
-const NotificationService = require('./NotificationService');
-const { publishEvent } = require('../events/kafka');
-const { TOPICS } = require('../events/contracts');
+const repositories = require('../repositories');
+const { publish: outboxPublish } = require('../events/outbox');
+const { withTransaction: dbTransaction } = require('../database/config');
+const { EVENT_TYPES } = require('../events/contracts');
+const { NotFoundError } = require('../utils/errors');
+const { daysAgoStr } = require('../utils/dates');
 
 const NEW_JOINER_WINDOW_DAYS = 7;
 
 class AnnouncementService {
-  static async create(createdBy, organizationId, data) {
-    try {
-      const { title, body, category = 'GENERAL', isPinned = false, expiresAt = null } = data;
+  constructor({ announcementRepository, userRepository, publish, withTransaction = (fn) => fn() }) {
+    this.announcementRepository = announcementRepository;
+    this.userRepository = userRepository;
+    this.publish = publish;
+    this.withTransaction = withTransaction;
+  }
 
-      const announcement = await Announcement.create({
-        organizationId,
-        createdBy,
+  async create(author, { title, body, category = 'GENERAL', isPinned = false, expiresAt = null }) {
+    // Announcement and outbox event commit together
+    return this.withTransaction(async () => {
+      const announcement = await this.announcementRepository.create({
+        organizationId: author.organizationId,
+        createdBy: author.id,
         title,
         body,
         category,
@@ -21,120 +28,51 @@ class AnnouncementService {
         expiresAt
       });
 
-      const orgUsers = await User.findAll({
-        where: { organizationId, isActive: true },
-        attributes: ['id']
-      });
-
-      await NotificationService.notifyMany(
-        orgUsers.map(u => u.id),
-        organizationId,
-        {
-          category: 'ANNOUNCEMENT',
-          title: 'New announcement',
-          message: title,
-          link: '/announcements'
-        }
-      );
-
-      await publishEvent(TOPICS.ANNOUNCEMENT, {
-        eventType: 'CREATED',
-        organizationId,
+      // Notifying every employee is done asynchronously by the notification worker
+      await this.publish(EVENT_TYPES.ANNOUNCEMENT_CREATED, author.organizationId, {
         announcementId: announcement.id,
         title,
         category,
-        createdBy,
-        occurredAt: new Date().toISOString()
+        isPinned: Boolean(isPinned),
+        createdBy: author.id
       });
 
       return announcement;
-    } catch (error) {
-      console.error('Create announcement error:', error);
-      throw new Error(error.message || 'Failed to create announcement');
-    }
+    });
   }
 
-  static async list(organizationId) {
-    try {
-      const announcements = await Announcement.findAll({
-        where: {
-          organizationId,
-          [Op.or]: [{ expiresAt: null }, { expiresAt: { [Op.gt]: new Date() } }]
-        },
-        order: [['isPinned', 'DESC'], ['createdAt', 'DESC']],
-        include: [{
-          model: User,
-          as: 'author',
-          attributes: ['id', 'name']
-        }]
-      });
-
-      return announcements;
-    } catch (error) {
-      console.error('List announcements error:', error);
-      throw new Error('Failed to get announcements');
-    }
+  list(organizationId) {
+    return this.announcementRepository.findActive(organizationId);
   }
 
-  static async remove(announcementId, organizationId) {
-    try {
-      const deleted = await Announcement.destroy({ where: { id: announcementId, organizationId } });
+  async remove(announcementId, organizationId) {
+    const deleted = await this.announcementRepository.deleteInOrg(announcementId, organizationId);
 
-      if (!deleted) {
-        throw new Error('Announcement not found');
-      }
-
-      return { deleted: true };
-    } catch (error) {
-      console.error('Delete announcement error:', error);
-      throw new Error(error.message || 'Failed to delete announcement');
+    if (!deleted) {
+      throw new NotFoundError('Announcement not found');
     }
+
+    return { deleted: true };
   }
 
   // Anyone in the org whose birthday (month + day) is today
-  static async getTodaysBirthdays(organizationId) {
-    try {
-      const usersWithBirthday = await User.findAll({
-        where: { organizationId, isActive: true, dateOfBirth: { [Op.not]: null } },
-        attributes: ['id', 'name', 'department', 'dateOfBirth']
-      });
+  async getTodaysBirthdays(organizationId) {
+    const users = await this.userRepository.findWithBirthdays(organizationId);
+    const today = new Date();
 
-      const today = new Date();
-
-      return usersWithBirthday.filter(user => {
-        const dob = new Date(user.dateOfBirth);
-        return dob.getMonth() === today.getMonth() && dob.getDate() === today.getDate();
-      });
-    } catch (error) {
-      console.error('Get birthdays error:', error);
-      throw new Error('Failed to get today\'s birthdays');
-    }
+    return users.filter(user => {
+      const dob = new Date(user.dateOfBirth);
+      return dob.getMonth() === today.getMonth() && dob.getDate() === today.getDate();
+    });
   }
 
   // Employees who joined within the last week, for the "welcome to the team" feed item
-  static async getRecentJoiners(organizationId, windowDays = NEW_JOINER_WINDOW_DAYS) {
-    try {
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - windowDays);
-      const cutoffStr = cutoff.toISOString().split('T')[0];
-
-      return await User.findAll({
-        where: {
-          organizationId,
-          isActive: true,
-          hireDate: { [Op.gte]: cutoffStr }
-        },
-        attributes: ['id', 'name', 'department', 'hireDate'],
-        order: [['hireDate', 'DESC']]
-      });
-    } catch (error) {
-      console.error('Get recent joiners error:', error);
-      throw new Error('Failed to get recently joined employees');
-    }
+  getRecentJoiners(organizationId, windowDays = NEW_JOINER_WINDOW_DAYS) {
+    return this.userRepository.findJoinedSince(organizationId, daysAgoStr(windowDays));
   }
 
-  // Combined dashboard feed: announcements + birthdays + new joiners, newest first
-  static async getFeed(organizationId) {
+  // Combined dashboard feed: announcements + birthdays + new joiners, pinned first
+  async getFeed(organizationId) {
     const [announcements, birthdays, newJoiners] = await Promise.all([
       this.list(organizationId),
       this.getTodaysBirthdays(organizationId),
@@ -173,4 +111,10 @@ class AnnouncementService {
   }
 }
 
-module.exports = AnnouncementService;
+module.exports = new AnnouncementService({
+  announcementRepository: repositories.announcementRepository,
+  userRepository: repositories.userRepository,
+  publish: outboxPublish,
+  withTransaction: dbTransaction
+});
+module.exports.AnnouncementService = AnnouncementService;

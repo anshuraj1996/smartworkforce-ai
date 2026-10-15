@@ -14,6 +14,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
 import { AttendanceService } from './services/attendance.service';
+import { todayLocal } from '../../core/utils/date.util';
 
 Chart.register(...registerables);
 
@@ -257,7 +258,7 @@ export class AttendanceComponent implements OnInit, OnDestroy, AfterViewInit {
 
     return record || {
       id: member.user?.id,
-      date: new Date().toISOString().split('T')[0],
+      date: todayLocal(),
       checkInTime: null,
       checkOutTime: null,
       status: 'Absent',
@@ -352,7 +353,7 @@ export class AttendanceComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   get todayAttendance(): AttendanceRecord | null {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayLocal();
     return this.recentAttendance.find(r => r.date === today) || null;
   }
 

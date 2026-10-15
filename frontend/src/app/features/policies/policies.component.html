@@ -1,0 +1,157 @@
+<div class="policies-page">
+  <div class="page-header">
+    <h1>Company Policies</h1>
+    <button mat-raised-button color="primary" *ngIf="isHrOrAbove && !showForm" (click)="openCreate()">
+      <mat-icon>add</mat-icon> New Policy
+    </button>
+  </div>
+
+  <mat-card class="notice" *ngIf="pendingAckCount > 0">
+    <mat-icon color="warn">assignment_late</mat-icon>
+    <span>You have {{ pendingAckCount }} polic{{ pendingAckCount === 1 ? 'y' : 'ies' }} waiting for your acknowledgement.</span>
+  </mat-card>
+
+  <!-- Leave balance, driven by the leave policies below -->
+  <mat-card>
+    <h2>My Leave Balance ({{ usesCompanyPolicy ? 'company policy' : 'default allocation' }})</h2>
+    <div class="balance-grid">
+      <div class="balance-tile" *ngFor="let b of balances">
+        <div class="balance-type">{{ b.leaveType }}</div>
+        <div class="balance-remaining">{{ b.remaining }}</div>
+        <div class="balance-detail">
+          of {{ b.allocated }}<span *ngIf="b.carried"> + {{ b.carried }} carried</span>
+          · {{ b.used }} used<span *ngIf="b.pending"> · {{ b.pending }} pending</span>
+        </div>
+      </div>
+    </div>
+  </mat-card>
+
+  <!-- Create / edit policy (HR) -->
+  <mat-card *ngIf="showForm">
+    <h2>{{ editingPolicy ? 'Edit Policy' : 'New Policy' }}</h2>
+    <p class="hint" *ngIf="editingPolicy">
+      Changing the title, content or effective date publishes version {{ editingPolicy.version + 1 }} and asks everyone to acknowledge again.
+    </p>
+    <form [formGroup]="policyForm" (ngSubmit)="savePolicy()" class="policy-form">
+      <div class="row">
+        <mat-form-field appearance="outline" class="grow">
+          <mat-label>Title</mat-label>
+          <input matInput formControlName="title">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Category</mat-label>
+          <mat-select formControlName="category">
+            <mat-option *ngFor="let c of categories" [value]="c.value">{{ c.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Effective from</mat-label>
+          <input matInput [matDatepicker]="effectivePicker" formControlName="effectiveDate">
+          <mat-datepicker-toggle matIconSuffix [for]="effectivePicker"></mat-datepicker-toggle>
+          <mat-datepicker #effectivePicker></mat-datepicker>
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Short summary</mat-label>
+        <input matInput formControlName="summary" maxlength="500">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Policy content</mat-label>
+        <textarea matInput rows="8" formControlName="content"></textarea>
+      </mat-form-field>
+
+      <mat-checkbox formControlName="requiresAcknowledgement">Employees must acknowledge this policy</mat-checkbox>
+
+      <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+      <div class="form-actions">
+        <button mat-button type="button" (click)="showForm = false">Cancel</button>
+        <button mat-raised-button color="primary" type="submit" [disabled]="policyForm.invalid || saving">
+          {{ editingPolicy ? 'Save Changes' : 'Publish' }}
+        </button>
+      </div>
+    </form>
+  </mat-card>
+
+  <!-- Policy list -->
+  <mat-accordion>
+    <mat-expansion-panel *ngFor="let policy of policies" (opened)="loadAckStatus(policy)" [class.archived]="!policy.isActive">
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          {{ policy.title }}
+          <span class="version">v{{ policy.version }}</span>
+        </mat-panel-title>
+        <mat-panel-description>
+          <span class="category">{{ categoryLabel(policy.category) }}</span>
+          <mat-chip *ngIf="!policy.isActive" disabled>Archived</mat-chip>
+          <mat-chip *ngIf="policy.isActive && policy.requiresAcknowledgement && policy.acknowledged" color="primary" selected>Acknowledged</mat-chip>
+          <mat-chip *ngIf="policy.isActive && policy.requiresAcknowledgement && !policy.acknowledged" color="warn" selected>Action needed</mat-chip>
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+
+      <p class="summary" *ngIf="policy.summary">{{ policy.summary }}</p>
+      <div class="content">{{ policy.content }}</div>
+      <p class="meta">
+        Effective {{ policy.effectiveDate }} · Last updated {{ policy.updatedAt | date:'mediumDate' }}
+        <span *ngIf="policy.author"> · Published by {{ policy.author.name }}</span>
+      </p>
+
+      <div class="panel-actions">
+        <button mat-raised-button color="primary"
+                *ngIf="policy.isActive && policy.requiresAcknowledgement && !policy.acknowledged"
+                (click)="acknowledge(policy)">
+          I have read and agree
+        </button>
+        <span class="acked" *ngIf="policy.acknowledged">
+          <mat-icon>check_circle</mat-icon> You acknowledged this on {{ policy.acknowledgedAt | date:'mediumDate' }}
+        </span>
+
+        <span class="spacer"></span>
+
+        <ng-container *ngIf="isHrOrAbove">
+          <button mat-button (click)="openEdit(policy)"><mat-icon>edit</mat-icon> Edit</button>
+          <button mat-button color="warn" *ngIf="policy.isActive" (click)="archive(policy)"><mat-icon>archive</mat-icon> Archive</button>
+          <button mat-button *ngIf="!policy.isActive" (click)="restore(policy)"><mat-icon>unarchive</mat-icon> Restore</button>
+        </ng-container>
+      </div>
+
+      <!-- Compliance view (HR) -->
+      <div class="ack-status" *ngIf="isHrOrAbove && ackStatus[policy.id] as status">
+        <div class="ack-header">
+          <span>{{ status.acknowledgedCount }} / {{ status.totalEmployees }} employees acknowledged v{{ status.version }}</span>
+        </div>
+        <mat-progress-bar mode="determinate"
+                          [value]="status.totalEmployees ? (status.acknowledgedCount / status.totalEmployees) * 100 : 0">
+        </mat-progress-bar>
+        <p class="pending-list" *ngIf="status.pending.length">
+          Pending: {{ pendingNames(status) }}<span *ngIf="status.pending.length > 15"> and {{ status.pending.length - 15 }} more</span>
+        </p>
+      </div>
+    </mat-expansion-panel>
+  </mat-accordion>
+  <p class="empty-state" *ngIf="policies.length === 0">No policies published yet</p>
+
+  <!-- Leave allocations (HR) -->
+  <mat-card *ngIf="isHrOrAbove">
+    <h2>Leave Allocations</h2>
+    <p class="hint">Yearly days per leave type. Once any type is active, balances use these instead of the defaults, and applying beyond the remaining balance is blocked unless negative balance is allowed.</p>
+    <div class="leave-table">
+      <div class="leave-row leave-head">
+        <span>Leave type</span><span>Days / year</span><span>Max carry forward</span><span>Allow negative</span><span>Active</span><span></span>
+      </div>
+      <div class="leave-row" *ngFor="let row of leavePolicies">
+        <span class="leave-type">{{ row.leaveType }}</span>
+        <input type="number" min="0" max="365" step="0.5" [(ngModel)]="row.annualAllocation">
+        <input type="number" min="0" max="365" step="0.5" [(ngModel)]="row.carryForwardMax">
+        <mat-checkbox [(ngModel)]="row.allowNegativeBalance"></mat-checkbox>
+        <mat-checkbox [(ngModel)]="row.isActive"></mat-checkbox>
+        <button mat-stroked-button (click)="saveLeavePolicy(row)">Save</button>
+      </div>
+    </div>
+    <p class="hint" *ngIf="leavePolicyMessage">{{ leavePolicyMessage }}</p>
+  </mat-card>
+</div>

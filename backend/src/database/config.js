@@ -1,9 +1,11 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
+const { resolveSchema } = require('./schema');
 
 // The shared DB server hosts other systems' data (e.g. fpstats) - keep this app's tables
 // isolated in their own Postgres schema instead of assuming a dedicated database.
-const schema = process.env.DB_SCHEMA || 'public';
+// Required (throws if DB_SCHEMA is missing) - see database/schema.js.
+const schema = resolveSchema();
 
 const config = {
   development: {
@@ -23,9 +25,10 @@ const config = {
       schema
     },
     dialectOptions: {
-      // Makes unqualified table references (e.g. a raw FK "REFERENCES organizations")
-      // resolve inside our schema first, instead of only the qualified CREATE TABLE statements.
-      options: `-c search_path=${schema},public`
+      // Makes unqualified table references (raw SQL, a raw FK "REFERENCES organizations")
+      // resolve inside our schema. Our schema only - not public: there a missing table of
+      // ours could resolve to another product's table of the same name (e.g. users).
+      options: `-c search_path=${schema}`
     }
   },
   test: {
@@ -45,7 +48,7 @@ const config = {
       schema
     },
     dialectOptions: {
-      options: `-c search_path=${schema},public`
+      options: `-c search_path=${schema}`
     }
   },
   production: {
@@ -65,7 +68,7 @@ const config = {
       schema
     },
     dialectOptions: {
-      options: `-c search_path=${schema},public`,
+      options: `-c search_path=${schema}`,
       ssl: {
         require: true,
         rejectUnauthorized: false
@@ -77,7 +80,13 @@ const config = {
 const env = process.env.NODE_ENV || 'development';
 const sequelize = new Sequelize(config[env].url, config[env]);
 
+// Enables ambient transactions for every query (see database/transaction.js)
+const { createWithTransaction } = require('./transaction');
+const withTransaction = createWithTransaction(sequelize);
+
 module.exports = {
   sequelize,
+  withTransaction,
+  schema,
   config: config[env]
 };

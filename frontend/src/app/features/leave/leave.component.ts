@@ -14,6 +14,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { LeaveService } from './services/leave.service';
+import { toLocalDateString } from '../../core/utils/date.util';
 
 const LEAVE_TYPES = ['ANNUAL', 'SICK', 'PERSONAL', 'MATERNITY', 'PATERNITY', 'EMERGENCY', 'UNPAID', 'COMPENSATORY', 'BEREAVEMENT'];
 
@@ -183,8 +184,8 @@ export class LeaveComponent implements OnInit {
 
   private submitLeaveRequest(formData: any): void {
     this.leaveService.applyLeave({
-      startDate: this.toDateString(formData.startDate),
-      endDate: this.toDateString(formData.endDate),
+      startDate: toLocalDateString(formData.startDate),
+      endDate: toLocalDateString(formData.endDate),
       leaveType: formData.leaveType,
       reason: formData.reason
     }).subscribe({
@@ -198,10 +199,6 @@ export class LeaveComponent implements OnInit {
     });
   }
 
-  private toDateString(value: Date | string): string {
-    const d = new Date(value);
-    return d.toISOString().split('T')[0];
-  }
 
   approveRequest(request: LeaveRequestRow): void {
     this.leaveService.approveLeaveRequest(request.id).subscribe({
