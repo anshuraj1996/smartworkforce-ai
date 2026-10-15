@@ -84,12 +84,6 @@ const WfhRequest = sequelize.define('WfhRequest', {
       fields: ['organization_id']
     },
     {
-      fields: ['user_id']
-    },
-    {
-      fields: ['status']
-    },
-    {
       fields: ['start_date', 'end_date']
     },
     {

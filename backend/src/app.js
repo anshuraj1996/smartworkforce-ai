@@ -8,18 +8,11 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 
 const { sequelize } = require('./models');
-const { connectRedis } = require('../config/redis');
-
-// Import events system
-const { initializeEventHandlers } = require('./events');
+const cache = require('./utils/cache');
 
 // Import middleware
-const { authenticate } = require('./middleware/auth');
 const { trackRequests } = require('./middleware/metrics');
-
-// Import services (for demo routes)
-const AuthService = require('./services/AuthService');
-const AttendanceService = require('./services/AttendanceService');
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,10 +24,22 @@ app.use(cors({
   credentials: true
 }));
 
+// Requests arrive through the ingress controller (one proxy hop). Trusting that hop makes req.ip
+// the real client from X-Forwarded-For - otherwise every user shares the ingress pod's IP and
+// therefore ONE rate-limit budget. TRUST_PROXY_HOPS=0 when nothing sits in front of the app.
+app.set('trust proxy', parseInt(process.env.TRUST_PROXY_HOPS ?? '1', 10));
+
+// Health endpoints are exempt from rate limiting
+const HEALTH_PATHS = ['/v1/health'];
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100 // limit each IP to 100 requests per windowMs
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
+  // Kubernetes probes /api/v1/health twice every 10s from the node's IP - that alone used up
+  // 100 requests in ~8 minutes, the probes got 429, liveness failed and the pod was restarted
+  // (~every 9 minutes). Probes must never be rate limited.
+  skip: (req) => HEALTH_PATHS.includes(req.path)
 });
 app.use('/api/', limiter);
 
@@ -61,152 +66,8 @@ app.get('/health', (req, res) => {
 // API Routes with versioning
 app.use('/api/v1', require('./routes/v1'));
 
-// Demo API endpoints for testing
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const result = await AuthService.login(email, password, {
-      ipAddress: req.ip,
-      userAgent: req.get('User-Agent')
-    });
-    
-    res.json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    console.log('Login error:', error);
-    res.status(401).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-app.post('/api/attendance/check-in', authenticate, async (req, res) => {
-  try {
-    const result = await AttendanceService.checkIn(
-      req.user.id, 
-      req.user.organizationId, 
-      req.body
-    );
-    
-    res.json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-app.post('/api/attendance/check-out', authenticate, async (req, res) => {
-  try {
-    const result = await AttendanceService.checkOut(
-      req.user.id, 
-      req.user.organizationId, 
-      req.body
-    );
-    
-    res.json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-app.get('/api/attendance/today', authenticate, async (req, res) => {
-  try {
-    const result = await AttendanceService.getTodayAttendance(req.user.id);
-    
-    res.json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-// Additional demo endpoints for testing all functionality
-app.get('/api/users/profile', authenticate, async (req, res) => {
-  try {
-    const result = await AuthService.getUserProfile(req.user.id);
-    res.json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-app.get('/api/attendance/history', authenticate, async (req, res) => {
-  try {
-    const { startDate, endDate, page = 1, limit = 30 } = req.query;
-    const result = await AttendanceService.getAttendanceHistory(
-      req.user.id, 
-      startDate, 
-      endDate, 
-      parseInt(page), 
-      parseInt(limit)
-    );
-    
-    res.json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-app.get('/api/attendance/stats', authenticate, async (req, res) => {
-  try {
-    const { month, year } = req.query;
-    const result = await AttendanceService.getAttendanceStats(
-      req.user.id,
-      month ? parseInt(month) : null,
-      year ? parseInt(year) : null
-    );
-    
-    res.json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({
-    success: false,
-    message: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message
-  });
-});
+// Error handling middleware - maps AppError/Sequelize errors to 4xx, everything else to 500
+app.use(errorHandler);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -217,15 +78,14 @@ app.use('*', (req, res) => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
+const shutdown = async (signal) => {
+  console.log(`${signal} received, shutting down gracefully`);
+  await cache.closeCache();
   process.exit(0);
-});
+};
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
-  process.exit(0);
-});
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 // Start server
 const startServer = async () => {
@@ -233,10 +93,9 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('🗄️  Database connection established');
 
-    await connectRedis();
-
-    // Initialize event handlers
-    initializeEventHandlers();
+    // Not awaited on purpose: the API serves requests (uncached) even if Redis is down.
+    // No Kafka connection here at all - events go to the outbox table; workers publish them.
+    cache.connectCache();
 
     // Start HTTP server
     app.listen(PORT, () => {

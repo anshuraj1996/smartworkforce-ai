@@ -115,6 +115,11 @@ import { AppNotification, NotificationService } from './core/services/notificati
               <span matListItemTitle>Work From Home</span>
             </a>
 
+            <a mat-list-item routerLink="/regularization" routerLinkActive="active">
+              <mat-icon matListItemIcon>edit_calendar</mat-icon>
+              <span matListItemTitle>Regularization</span>
+            </a>
+
             <a mat-list-item routerLink="/calendar" routerLinkActive="active">
               <mat-icon matListItemIcon>calendar_month</mat-icon>
               <span matListItemTitle>Calendar</span>
@@ -123,6 +128,16 @@ import { AppNotification, NotificationService } from './core/services/notificati
             <a mat-list-item routerLink="/announcements" routerLinkActive="active">
               <mat-icon matListItemIcon>campaign</mat-icon>
               <span matListItemTitle>Announcements</span>
+            </a>
+
+            <a mat-list-item routerLink="/policies" routerLinkActive="active">
+              <mat-icon matListItemIcon>policy</mat-icon>
+              <span matListItemTitle>Policies</span>
+            </a>
+
+            <a mat-list-item routerLink="/hiring" routerLinkActive="active">
+              <mat-icon matListItemIcon>work_outline</mat-icon>
+              <span matListItemTitle>Hiring &amp; Referrals</span>
             </a>
 
             <a mat-list-item routerLink="/analytics" routerLinkActive="active" *ngIf="isManagerOrAbove">

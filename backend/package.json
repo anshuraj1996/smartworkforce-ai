@@ -5,9 +5,16 @@
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
+    "worker": "node src/workers/index.js",
     "dev": "nodemon src/app.js",
     "db:init": "node src/database/init.js",
-    "db:sync": "node -e \"require('./src/models').syncDatabase()\"",
+    "db:sync": "node src/database/sync.js",
+    "db:migrate": "node src/database/migrate.js",
+    "db:explain": "node scripts/explain-queries.js",
+    "db:schema": "node scripts/dump-schema.js",
+    "dlq": "node scripts/dlq.js",
+    "kpi:backfill": "node scripts/kpi-backfill.js",
+    "events:catalog": "node scripts/generate-event-catalog.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -25,6 +32,7 @@
   "author": "SmartWorkforce Team",
   "license": "MIT",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.134.0",
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
@@ -78,16 +86,12 @@
     "typescript": "^5.3.3"
   },
   "jest": {
-    "preset": "ts-jest",
     "testEnvironment": "node",
     "collectCoverageFrom": [
-      "src/**/*.ts",
-      "!src/**/*.d.ts",
-      "!src/infrastructure/database/migrations/*.ts"
+      "src/**/*.js"
     ],
     "testMatch": [
-      "**/__tests__/**/*.ts",
-      "**/?(*.)+(spec|test).ts"
+      "**/__tests__/**/*.test.js"
     ]
   },
   "engines": {

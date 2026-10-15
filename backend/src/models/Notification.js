@@ -67,9 +67,6 @@ const Notification = sequelize.define('Notification', {
       fields: ['organization_id']
     },
     {
-      fields: ['user_id', 'is_read']
-    },
-    {
       fields: ['user_id', 'created_at']
     },
     {

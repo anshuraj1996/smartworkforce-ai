@@ -16,6 +16,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
 import { Subject, takeUntil } from 'rxjs';
+import { OrganizationSettingsComponent } from './organization-settings/organization-settings.component';
 
 import {
   ProfileService, 
@@ -45,7 +46,8 @@ import {
     MatChipsModule,
     MatProgressBarModule,
     MatTooltipModule,
-    MatBadgeModule
+    MatBadgeModule,
+    OrganizationSettingsComponent
   ],
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss']

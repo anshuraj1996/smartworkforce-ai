@@ -106,12 +106,6 @@ const AttendanceLog = sequelize.define('AttendanceLog', {
     },
     {
       fields: ['check_out_timestamp']
-    },
-    {
-      fields: ['attendance_type']
-    },
-    {
-      fields: ['user_id', 'date', 'attendance_type']
     }
   ]
 });

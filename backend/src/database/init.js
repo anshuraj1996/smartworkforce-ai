@@ -1,13 +1,19 @@
 const { syncDatabase, Organization, User, Shift } = require('../models');
+const { migrate } = require('./migrate');
 
 async function initializeDatabase() {
   try {
     console.log('🔄 Initializing database...');
     
-    // Sync database (create tables if they don't exist)
-    await syncDatabase({ alter: true });
+    // Create missing tables (plain sync, like db:sync). Not { alter: true }: changes to existing
+    // tables go through versioned migrations, and alter re-added users.email's UNIQUE as a new
+    // duplicate constraint on every run (cleaned up by migration 006).
+    await syncDatabase();
     
     console.log('✅ Database tables synchronized');
+
+    // Indexes and other schema changes sync() can't express (partial/concurrent indexes, drops)
+    await migrate();
     
     // Check if we need to create initial data
     const orgCount = await Organization.count();

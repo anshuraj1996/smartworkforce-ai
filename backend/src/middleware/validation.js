@@ -1,4 +1,5 @@
 const Joi = require('joi');
+const { LEAVE_TYPES, POLICY_CATEGORIES } = require('../config/constants');
 
 // Validation middleware factory
 const validate = (schema) => {
@@ -25,6 +26,12 @@ const validate = (schema) => {
     next();
   };
 };
+
+// HH:MM or HH:MM:SS, 24-hour
+const TIME_PATTERN = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/;
+
+// Kept as a YYYY-MM-DD string (not Joi.date()) so it compares equal to DATEONLY columns
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 // Validation schemas
 const schemas = {
@@ -127,6 +134,84 @@ const schemas = {
     })
   }),
 
+  // Attendance regularization schemas
+  createRegularizationRequest: Joi.object({
+    date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required().messages({
+      'string.pattern.base': 'Date must be in YYYY-MM-DD format'
+    }),
+    requestType: Joi.string().valid('MISSED_CHECK_IN', 'MISSED_CHECK_OUT', 'WRONG_TIME', 'MARK_PRESENT').required(),
+    requestedCheckIn: Joi.string().pattern(TIME_PATTERN).allow(null, ''),
+    requestedCheckOut: Joi.string().pattern(TIME_PATTERN).allow(null, ''),
+    reason: Joi.string().min(5).max(500).required()
+  }),
+
+  // Policy schemas
+  createPolicy: Joi.object({
+    title: Joi.string().min(3).max(200).required(),
+    category: Joi.string().valid(...POLICY_CATEGORIES).default('OTHER'),
+    summary: Joi.string().max(500).allow(null, ''),
+    content: Joi.string().min(10).required(),
+    effectiveDate: Joi.string().pattern(DATE_PATTERN).required(),
+    requiresAcknowledgement: Joi.boolean().default(true)
+  }),
+
+  updatePolicy: Joi.object({
+    title: Joi.string().min(3).max(200),
+    category: Joi.string().valid(...POLICY_CATEGORIES),
+    summary: Joi.string().max(500).allow(null, ''),
+    content: Joi.string().min(10),
+    effectiveDate: Joi.string().pattern(DATE_PATTERN),
+    requiresAcknowledgement: Joi.boolean(),
+    isActive: Joi.boolean()
+  }).min(1),
+
+  upsertLeavePolicy: Joi.object({
+    annualAllocation: Joi.number().min(0).max(365).required(),
+    carryForwardMax: Joi.number().min(0).max(365).default(0),
+    allowNegativeBalance: Joi.boolean().default(false),
+    isActive: Joi.boolean().default(true)
+  }),
+
+  // Hiring / referral schemas
+  createJobOpening: Joi.object({
+    title: Joi.string().min(3).max(200).required(),
+    department: Joi.string().max(100).allow(null, ''),
+    location: Joi.string().max(150).allow(null, ''),
+    employmentType: Joi.string().valid('FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERN').default('FULL_TIME'),
+    experienceMin: Joi.number().integer().min(0).max(50).allow(null),
+    experienceMax: Joi.number().integer().min(0).max(50).allow(null),
+    description: Joi.string().min(10).required(),
+    openings: Joi.number().integer().min(1).max(500).default(1),
+    referralBonus: Joi.number().min(0).allow(null)
+  }),
+
+  updateJobOpening: Joi.object({
+    title: Joi.string().min(3).max(200),
+    department: Joi.string().max(100).allow(null, ''),
+    location: Joi.string().max(150).allow(null, ''),
+    employmentType: Joi.string().valid('FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERN'),
+    experienceMin: Joi.number().integer().min(0).max(50).allow(null),
+    experienceMax: Joi.number().integer().min(0).max(50).allow(null),
+    description: Joi.string().min(10),
+    openings: Joi.number().integer().min(1).max(500),
+    referralBonus: Joi.number().min(0).allow(null),
+    status: Joi.string().valid('OPEN', 'ON_HOLD', 'CLOSED')
+  }).min(1),
+
+  createReferral: Joi.object({
+    candidateName: Joi.string().min(2).max(150).required(),
+    candidateEmail: Joi.string().email().required(),
+    candidatePhone: Joi.string().max(30).allow(null, ''),
+    resumeUrl: Joi.string().uri({ scheme: ['http', 'https'] }).max(500).allow(null, ''),
+    relationship: Joi.string().max(100).allow(null, ''),
+    notes: Joi.string().max(2000).allow(null, '')
+  }),
+
+  updateReferralStatus: Joi.object({
+    status: Joi.string().valid('SCREENING', 'INTERVIEWING', 'OFFERED', 'HIRED', 'REJECTED', 'WITHDRAWN').required(),
+    statusNote: Joi.string().max(1000).allow(null, '')
+  }),
+
   approveLeaveRequest: Joi.object({
     action: Joi.string().valid('approve', 'reject').required(),
     rejectionReason: Joi.when('action', {
@@ -179,6 +264,56 @@ const schemas = {
     endDate: Joi.date().iso(),
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(10)
+  }),
+
+  // ---- Analytics (2D) ----
+  // Dates stay YYYY-MM-DD strings (not Joi.date()) - they go straight into SQL as calendar days
+  periodQuery: Joi.object({
+    period: Joi.string().valid('7d', '30d', '90d', '1y')
+  }),
+
+  lifecycleQuery: Joi.object({
+    months: Joi.number().integer().min(1).max(36).default(12)
+  }),
+
+  yearQuery: Joi.object({
+    year: Joi.number().integer().min(2000).max(2100)
+  }),
+
+  kpiQuery: Joi.object({
+    from: Joi.string().pattern(DATE_PATTERN),
+    to: Joi.string().pattern(DATE_PATTERN),
+    granularity: Joi.string().valid('day', 'week', 'month').default('day'),
+    department: Joi.string().trim().max(100)
+  }),
+
+  forecastQuery: Joi.object({
+    horizonDays: Joi.number().integer().min(7).max(90).default(30),
+    department: Joi.string().trim().max(100)
+  }),
+
+  assistantChat: Joi.object({
+    message: Joi.string().trim().min(1).max(2000).required(),
+    // earlier turns, plain text only; the service keeps the last 10
+    history: Joi.array().items(Joi.object({
+      role: Joi.string().valid('user', 'assistant').required(),
+      content: Joi.string().max(4000).required()
+    })).max(20).default([])
+  }),
+
+  riskQuery: Joi.object({
+    department: Joi.string().trim().max(100)
+  }),
+
+  leaveForecastQuery: Joi.object({
+    weeks: Joi.number().integer().min(4).max(26).default(12),
+    department: Joi.string().trim().max(100)
+  }),
+
+  createReport: Joi.object({
+    reportType: Joi.string().valid('attendance-summary', 'leave-summary').required(),
+    from: Joi.string().pattern(DATE_PATTERN).required(),
+    to: Joi.string().pattern(DATE_PATTERN).required()
   }),
 
   analyticsQuery: Joi.object({

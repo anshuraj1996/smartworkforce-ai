@@ -38,7 +38,9 @@ const AuditLog = sequelize.define('AuditLog', {
     type: DataTypes.ENUM(
       'USER', 'ORGANIZATION', 'ATTENDANCE_LOG', 'LEAVE_REQUEST',
       'SHIFT', 'AI_INSIGHT', 'AUDIT_LOG', 'SYSTEM',
-      'WFH_REQUEST', 'ANNOUNCEMENT', 'NOTIFICATION'
+      'WFH_REQUEST', 'ANNOUNCEMENT', 'NOTIFICATION',
+      'REGULARIZATION_REQUEST', 'POLICY', 'LEAVE_POLICY',
+      'JOB_OPENING', 'REFERRAL'
     ),
     allowNull: false,
     field: 'entity_type'
@@ -101,28 +103,7 @@ const AuditLog = sequelize.define('AuditLog', {
   timestamps: false, // We use custom timestamp field
   indexes: [
     {
-      fields: ['organization_id']
-    },
-    {
-      fields: ['actor_id']
-    },
-    {
-      fields: ['action']
-    },
-    {
-      fields: ['entity_type']
-    },
-    {
       fields: ['entity_id']
-    },
-    {
-      fields: ['timestamp']
-    },
-    {
-      fields: ['severity']
-    },
-    {
-      fields: ['source']
     },
     {
       fields: ['organization_id', 'timestamp']

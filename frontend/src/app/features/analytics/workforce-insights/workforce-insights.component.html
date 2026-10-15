@@ -1,0 +1,497 @@
+<mat-card class="insights-card">
+  <div class="insights-header">
+    <div>
+      <h2>Workforce insights</h2>
+      <p class="muted">
+        {{ role === 'EMPLOYEE' ? 'Your own numbers' : role === 'MANAGER' ? 'Your direct reports' : 'Whole organization' }}
+      </p>
+    </div>
+    <div class="header-controls">
+      <mat-button-toggle-group *ngIf="usesPeriod" [(ngModel)]="period" (change)="onPeriodChange()" aria-label="Period">
+        <mat-button-toggle *ngFor="let p of periods" [value]="p.value">{{ p.label }}</mat-button-toggle>
+      </mat-button-toggle-group>
+      <button mat-icon-button (click)="reload()" matTooltip="Refresh" aria-label="Refresh">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <mat-tab-group animationDuration="0ms" (selectedIndexChange)="onTabChange($event)">
+    <mat-tab *ngFor="let tab of tabs">
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">{{ tab.icon }}</mat-icon>{{ tab.label }}
+      </ng-template>
+
+      <ng-template matTabContent>
+        <div class="tab-body">
+          <div class="state" *ngIf="loading[tab.key]"><mat-spinner diameter="32"></mat-spinner></div>
+          <div class="state error" *ngIf="errors[tab.key] && !loading[tab.key]">
+            <mat-icon>error_outline</mat-icon> {{ errors[tab.key] }}
+          </div>
+
+          <ng-container *ngIf="!loading[tab.key] && !errors[tab.key]" [ngSwitch]="tab.key">
+
+            <!-- ===== Assistant ===== -->
+            <ng-container *ngSwitchCase="'assistant'">
+              <p class="notice" *ngIf="assistantEnabled === false">
+                <mat-icon>info</mat-icon>
+                The AI assistant isn't enabled on this server yet (an administrator needs to set ANTHROPIC_API_KEY).
+              </p>
+              <div class="chat" *ngIf="assistantEnabled">
+                <div class="chat-log">
+                  <div class="chat-empty" *ngIf="!chat.length">
+                    <p class="muted">Ask about attendance, leave, WFH, approvals or forecasts. Answers only use data you're allowed to see.</p>
+                    <div class="starters">
+                      <button mat-stroked-button *ngFor="let q of starterQuestions" (click)="ask(q)">{{ q }}</button>
+                    </div>
+                  </div>
+                  <div *ngFor="let t of chat" class="bubble" [class.user]="t.role === 'user'" [class.error]="t.error">
+                    <div *ngIf="t.role === 'user'">{{ t.content }}</div>
+                    <div *ngIf="t.role === 'assistant'" [innerHTML]="formatAnswer(t.content)"></div>
+                    <div class="sources small muted" *ngIf="t.toolsUsed?.length">
+                      Based on: <span *ngFor="let tool of t.toolsUsed; let last = last">{{ toolLabel(tool.name) }}{{ tool.ok ? '' : ' (unavailable)' }}{{ last ? '' : ', ' }}</span>
+                    </div>
+                  </div>
+                  <div class="bubble thinking" *ngIf="asking"><mat-spinner diameter="18"></mat-spinner> Looking that up…</div>
+                </div>
+                <form class="chat-input" (ngSubmit)="ask()">
+                  <mat-form-field appearance="outline" class="grow">
+                    <mat-label>Ask a question</mat-label>
+                    <input matInput [(ngModel)]="question" name="question" maxlength="2000" [disabled]="asking" autocomplete="off">
+                  </mat-form-field>
+                  <button mat-flat-button color="primary" type="submit" [disabled]="asking || !question.trim()">
+                    <mat-icon>send</mat-icon>
+                  </button>
+                  <button mat-icon-button type="button" (click)="clearChat()" [disabled]="!chat.length || asking" matTooltip="New conversation" aria-label="New conversation">
+                    <mat-icon>restart_alt</mat-icon>
+                  </button>
+                </form>
+                <p class="small muted">AI answers can be wrong - check important numbers on the relevant page.</p>
+              </div>
+            </ng-container>
+
+            <!-- ===== My summary ===== -->
+            <ng-container *ngSwitchCase="'me'">
+              <ng-container *ngIf="summary as s">
+                <p class="muted">{{ s.period.from }} to {{ s.period.to }} · {{ s.workingDays }} working days, {{ s.leaveDays }} on leave</p>
+                <div class="stats">
+                  <div class="stat"><span class="value">{{ s.attendanceRate }}%</span><span class="label">Attendance</span></div>
+                  <div class="stat"><span class="value">{{ s.punctualityRate }}%</span><span class="label">On time</span></div>
+                  <div class="stat"><span class="value">{{ s.wfhRate }}%</span><span class="label">Worked from home</span></div>
+                  <div class="stat"><span class="value">{{ s.avgWorkingHours }} h</span><span class="label">Avg. working day</span></div>
+                  <div class="stat"><span class="value">{{ s.overtimeHours }} h</span><span class="label">Overtime</span></div>
+                  <div class="stat"><span class="value">{{ s.daysLate }}</span><span class="label">Late days (avg. {{ s.avgLateMinutes }} min)</span></div>
+                </div>
+                <h3>Leave balance</h3>
+                <table class="simple-table" *ngIf="s.leaveBalance.length; else noData">
+                  <thead><tr><th>Type</th><th>Allocated</th><th>Carried</th><th>Used</th><th>Pending</th><th>Remaining</th></tr></thead>
+                  <tbody>
+                    <tr *ngFor="let b of s.leaveBalance">
+                      <td>{{ b.leaveType }}</td><td>{{ b.allocated }}</td><td>{{ b.carried }}</td>
+                      <td>{{ b.used }}</td><td>{{ b.pending }}</td><td><strong>{{ b.remaining }}</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ng-container>
+            </ng-container>
+
+            <!-- ===== Work mode ===== -->
+            <ng-container *ngSwitchCase="'workMode'">
+              <ng-container *ngIf="workMode as w">
+                <div class="stats">
+                  <div class="stat"><span class="value">{{ w.summary.wfhRate }}%</span><span class="label">WFH share of attended days</span></div>
+                  <div class="stat"><span class="value">{{ w.summary.office }}</span><span class="label">Office days</span></div>
+                  <div class="stat"><span class="value">{{ w.summary.wfh }}</span><span class="label">WFH days</span></div>
+                  <div class="stat"><span class="value">{{ w.summary.halfDay }}</span><span class="label">Half days</span></div>
+                  <div class="stat"><span class="value">{{ w.requests.pending.requests }}</span><span class="label">WFH requests pending</span></div>
+                  <div class="stat"><span class="value">{{ w.requests.approved.days }}</span><span class="label">WFH days approved</span></div>
+                </div>
+                <app-mini-chart *ngIf="w.weekly.length; else noData" [config]="workModeChart!"></app-mini-chart>
+                <ng-container *ngIf="w.byDepartment.length > 1">
+                  <h3>By department</h3>
+                  <table class="simple-table">
+                    <thead><tr><th>Department</th><th>Office</th><th>WFH</th><th>Half day</th><th>WFH %</th></tr></thead>
+                    <tbody>
+                      <tr *ngFor="let d of w.byDepartment">
+                        <td>{{ d.department }}</td><td>{{ d.office }}</td><td>{{ d.wfh }}</td><td>{{ d.halfDay }}</td><td>{{ d.wfhRate }}%</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </ng-container>
+              </ng-container>
+            </ng-container>
+
+            <!-- ===== Overtime ===== -->
+            <ng-container *ngSwitchCase="'overtime'">
+              <ng-container *ngIf="overtime as o">
+                <p class="muted">Time beyond a {{ o.standardHours }}-hour day.</p>
+                <div class="stats">
+                  <div class="stat"><span class="value">{{ o.summary.overtimeHours }} h</span><span class="label">Total overtime</span></div>
+                  <div class="stat"><span class="value">{{ o.summary.overtimeDayRate }}%</span><span class="label">Worked days running over</span></div>
+                  <div class="stat"><span class="value">{{ o.summary.avgOvertimeHoursPerOvertimeDay }} h</span><span class="label">Avg. extra per long day</span></div>
+                  <div class="stat" *ngIf="o.scope !== 'self'"><span class="value">{{ o.summary.employeesWithOvertime }}</span><span class="label">People with overtime</span></div>
+                </div>
+                <app-mini-chart *ngIf="o.weekly.length; else noData" [config]="overtimeChart!"></app-mini-chart>
+                <ng-container *ngIf="o.topEmployees.length">
+                  <h3>Most overtime</h3>
+                  <table class="simple-table">
+                    <thead><tr><th>Employee</th><th>Department</th><th>Overtime</th><th>Long days</th></tr></thead>
+                    <tbody>
+                      <tr *ngFor="let e of o.topEmployees">
+                        <td>{{ e.name }}</td><td>{{ e.department }}</td><td>{{ e.overtimeHours }} h</td><td>{{ e.overtimeDays }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </ng-container>
+              </ng-container>
+            </ng-container>
+
+            <!-- ===== Approvals ===== -->
+            <ng-container *ngSwitchCase="'approvals'">
+              <ng-container *ngIf="approvals as a">
+                <div class="stats">
+                  <div class="stat"><span class="value">{{ hoursText(a.overall.medianHours) }}</span><span class="label">Median time to decide</span></div>
+                  <div class="stat"><span class="value">{{ hoursText(a.overall.p90Hours) }}</span><span class="label">90% decided within</span></div>
+                  <div class="stat"><span class="value">{{ a.overall.withinSlaRate ?? '—' }}{{ a.overall.withinSlaRate !== null ? '%' : '' }}</span><span class="label">Within {{ a.slaHours }} h</span></div>
+                  <div class="stat"><span class="value">{{ a.overall.approvalRate }}%</span><span class="label">Approved</span></div>
+                  <div class="stat" [class.warn]="a.overall.pending > 0"><span class="value">{{ a.overall.pending }}</span><span class="label">Waiting now</span></div>
+                  <div class="stat"><span class="value">{{ hoursText(a.overall.oldestPendingHours) }}</span><span class="label">Oldest waiting</span></div>
+                </div>
+                <h3>By request type</h3>
+                <table class="simple-table">
+                  <thead><tr><th>Type</th><th>Decided</th><th>Median</th><th>Average</th><th>Within SLA</th><th>Pending</th></tr></thead>
+                  <tbody>
+                    <tr *ngFor="let k of ['LEAVE', 'WFH', 'REGULARIZATION']">
+                      <td>{{ k | titlecase }}</td>
+                      <td>{{ $any(a.byKind)[k].decided }}</td>
+                      <td>{{ hoursText($any(a.byKind)[k].medianHours) }}</td>
+                      <td>{{ hoursText($any(a.byKind)[k].avgHours) }}</td>
+                      <td>{{ $any(a.byKind)[k].withinSlaRate ?? '—' }}{{ $any(a.byKind)[k].withinSlaRate !== null ? '%' : '' }}</td>
+                      <td>{{ $any(a.byKind)[k].pending }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <ng-container *ngIf="a.byApprover.length">
+                  <h3>By approver</h3>
+                  <table class="simple-table">
+                    <thead><tr><th>Approver</th><th>Decided</th><th>Median</th><th>Average</th></tr></thead>
+                    <tbody>
+                      <tr *ngFor="let p of a.byApprover">
+                        <td>{{ p.approverName || 'Unknown' }}</td><td>{{ p.decided }}</td>
+                        <td>{{ hoursText(p.medianHours) }}</td><td>{{ hoursText(p.avgHours) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </ng-container>
+              </ng-container>
+            </ng-container>
+
+            <!-- ===== Forecast ===== -->
+            <ng-container *ngSwitchCase="'forecast'">
+              <div class="toolbar">
+                <mat-button-toggle-group [(ngModel)]="forecastHorizon" (change)="loadForecast()" aria-label="Horizon">
+                  <mat-button-toggle [value]="14">2 weeks</mat-button-toggle>
+                  <mat-button-toggle [value]="30">30 days</mat-button-toggle>
+                  <mat-button-toggle [value]="60">60 days</mat-button-toggle>
+                </mat-button-toggle-group>
+                <mat-form-field appearance="outline" class="compact" *ngIf="isHr && kpiDepartments.length">
+                  <mat-label>Department</mat-label>
+                  <mat-select [(ngModel)]="forecastDepartment" (selectionChange)="loadForecast()">
+                    <mat-option [value]="null">Whole organization</mat-option>
+                    <mat-option *ngFor="let d of kpiDepartments" [value]="d">{{ d }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <ng-container *ngIf="forecast as f">
+                <p class="notice" *ngIf="f.status === 'insufficient_history'">
+                  <mat-icon>info</mat-icon>
+                  Only {{ f.history.usableDays }} days of KPI history (the model needs {{ f.history.minimumDays }}) - showing booked leave only.
+                  History can be filled with <code>npm run kpi:backfill -- --days 365</code>.
+                </p>
+                <div class="stats">
+                  <div class="stat"><span class="value">{{ f.summary.avgAvailabilityRate ?? '—' }}{{ f.summary.avgAvailabilityRate !== null ? '%' : '' }}</span><span class="label">Avg. expected availability</span></div>
+                  <div class="stat" [class.warn]="f.summary.lowestDay && f.summary.lowestDay.availabilityRate < 85">
+                    <span class="value">{{ f.summary.lowestDay?.availabilityRate ?? '—' }}{{ f.summary.lowestDay ? '%' : '' }}</span>
+                    <span class="label">Lowest day {{ f.summary.lowestDay?.date }}</span>
+                  </div>
+                  <div class="stat" [class.warn]="f.summary.highRiskDays > 0"><span class="value">{{ f.summary.highRiskDays }}</span><span class="label">Days under 75% available</span></div>
+                  <div class="stat"><span class="value">{{ f.summary.plannedLeaveDays }}</span><span class="label">Booked leave (person-days)</span></div>
+                </div>
+                <app-mini-chart *ngIf="f.days.length; else noData" [config]="forecastChart!" [height]="300"></app-mini-chart>
+                <p class="muted small">
+                  {{ forecastModelText(f) }}<ng-container *ngIf="f.history.excludedDays"> · {{ f.history.excludedDays }} holiday-like day(s) left out of training</ng-container>.
+                  <ng-container *ngIf="f.model.note"> {{ f.model.note }}.</ng-container>
+                </p>
+                <ng-container *ngIf="leaveForecast as lf">
+                  <h3>Leave demand - next {{ lf.horizonWeeks }} weeks</h3>
+                  <p class="notice" *ngIf="lf.status === 'insufficient_history'">
+                    <mat-icon>info</mat-icon>
+                    Only {{ lf.history.usableWeeks }} weeks of leave history (the model needs {{ lf.history.minimumWeeks }}) - showing booked leave only.
+                  </p>
+                  <div class="stats">
+                    <div class="stat"><span class="value">{{ lf.summary.expectedLeaveDays }}</span><span class="label">Expected leave days</span></div>
+                    <div class="stat"><span class="value">{{ lf.summary.bookedDays }}</span><span class="label">Already approved</span></div>
+                    <div class="stat"><span class="value">{{ lf.summary.likelyNewRequests }}</span><span class="label">Likely still to be requested</span></div>
+                    <div class="stat" [class.warn]="lf.summary.spikeWeeks > 0"><span class="value">{{ lf.summary.spikeWeeks }}</span><span class="label">Spike weeks (▲)</span></div>
+                  </div>
+                  <p class="notice" *ngIf="lf.yearEnd.days > 0 && isHr">
+                    <mat-icon>event_busy</mat-icon>
+                    {{ lf.yearEnd.days }} days of annual/personal leave ({{ lf.yearEnd.employees }} employees) will expire unused on 31 Dec {{ lf.yearEnd.year }} - expect a year-end rush.
+                  </p>
+                  <app-mini-chart *ngIf="lf.weeks.length" [config]="leaveForecastChart!" [height]="280"></app-mini-chart>
+                  <table class="simple-table" *ngIf="lf.summary.spikeWeeks > 0">
+                    <thead><tr><th>Spike week</th><th>Expected</th><th>Usual</th><th>Why</th></tr></thead>
+                    <tbody>
+                      <tr *ngFor="let w of lf.weeks" [hidden]="!w.spike">
+                        <td>{{ w.weekStart }}</td><td>{{ w.expectedDays }} days</td><td>{{ lf.summary.typicalWeekDays }} days</td>
+                        <td>{{ w.reasons.join('; ') }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <p class="muted small" *ngIf="lf.byType.length">
+                    Expected mix: <span *ngFor="let t of lf.byType; let last = last">{{ t.leaveType | titlecase }} {{ t.share }}%{{ last ? '' : ' · ' }}</span>
+                    <ng-container *ngIf="lf.model"> · {{ lf.model.type === 'ridge' ? 'Ridge regression (seasonality + trend)' : 'Same weeks last year' }}, {{ lf.model.trainingWeeks }} weeks of history<ng-container *ngIf="lf.model.backtest?.improvementVsMeanPct !== null"> · backtest error {{ lf.model.backtest?.improvementVsMeanPct }}% below the historical average</ng-container></ng-container>
+                  </p>
+                </ng-container>
+                <p class="muted" *ngIf="leaveForecastError">{{ leaveForecastError }}</p>
+
+                <h3>Day by day</h3>
+                <table class="simple-table">
+                  <thead><tr><th>Day</th><th>Expected available</th><th>Likely range</th><th>Booked leave</th><th>Pending</th><th>WFH</th><th></th></tr></thead>
+                  <tbody>
+                    <tr *ngFor="let d of f.days">
+                      <td>{{ d.weekday.slice(0, 3) }} {{ d.date }}</td>
+                      <td>{{ d.expectedAvailable }} / {{ d.headcount }} ({{ d.availabilityRate }}%)</td>
+                      <td>{{ d.availableRange ? d.availableRange.low + '–' + d.availableRange.high : '—' }}</td>
+                      <td>{{ d.plannedLeave }}</td>
+                      <td>{{ d.pendingLeave }}</td>
+                      <td>{{ d.expectedWfh }}</td>
+                      <td><span class="status" [ngClass]="d.risk === 'high' ? 'failed' : d.risk === 'elevated' ? 'pending' : 'ready'">{{ d.risk }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ng-container>
+            </ng-container>
+
+            <!-- ===== Risk ===== -->
+            <ng-container *ngSwitchCase="'risk'">
+              <div class="toolbar" *ngIf="isHr && kpiDepartments.length">
+                <mat-form-field appearance="outline" class="compact">
+                  <mat-label>Department</mat-label>
+                  <mat-select [(ngModel)]="riskDepartment" (selectionChange)="loadRisk()">
+                    <mat-option [value]="null">Whole organization</mat-option>
+                    <mat-option *ngFor="let d of kpiDepartments" [value]="d">{{ d }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <ng-container *ngIf="risk as r">
+                <p class="notice"><mat-icon>info</mat-icon>{{ r.methodology.note }}</p>
+                <div class="stats">
+                  <div class="stat" [class.warn]="r.summary.attendance.high > 0"><span class="value">{{ r.summary.attendance.high }}</span><span class="label">High attendance risk</span></div>
+                  <div class="stat"><span class="value">{{ r.summary.attendance.medium }}</span><span class="label">Medium attendance risk</span></div>
+                  <div class="stat" [class.warn]="r.summary.burnout.high > 0"><span class="value">{{ r.summary.burnout.high }}</span><span class="label">High burnout risk</span></div>
+                  <div class="stat"><span class="value">{{ r.summary.burnout.medium }}</span><span class="label">Medium burnout risk</span></div>
+                  <div class="stat"><span class="value">{{ r.summary.scored }} / {{ r.summary.employees }}</span><span class="label">Employees scored</span></div>
+                </div>
+                <table class="simple-table" *ngIf="r.employees.length; else noData">
+                  <thead><tr><th>Employee</th><th>Department</th><th>Attendance risk</th><th>Burnout risk</th><th>Main reasons</th></tr></thead>
+                  <tbody>
+                    <ng-container *ngFor="let e of r.employees">
+                      <tr class="clickable" (click)="e.status === 'ok' && toggleRiskDetail(e.userId)">
+                        <td>{{ e.name }}</td>
+                        <td>{{ e.department }}</td>
+                        <ng-container *ngIf="e.status === 'ok'; else notScored">
+                          <td><span class="risk-chip" [ngClass]="e.attendanceRisk!.level">{{ e.attendanceRisk!.score }} · {{ e.attendanceRisk!.level }}</span></td>
+                          <td><span class="risk-chip" [ngClass]="e.burnoutRisk!.level">{{ e.burnoutRisk!.score }} · {{ e.burnoutRisk!.level }}</span></td>
+                          <td class="small">{{ [].concat($any(e.attendanceRisk!.reasons), $any(e.burnoutRisk!.reasons)).slice(0, 2).join('; ') || '—' }}</td>
+                        </ng-container>
+                        <ng-template #notScored><td colspan="3" class="muted small">Not enough attendance history yet</td></ng-template>
+                      </tr>
+                      <tr *ngIf="riskDetailFor === e.userId" class="detail-row">
+                        <td colspan="5">
+                          <mat-spinner *ngIf="riskDetailLoading" diameter="24"></mat-spinner>
+                          <div class="risk-detail" *ngIf="riskDetail as d">
+                            <div *ngFor="let group of [{ title: 'Attendance risk', s: d.attendanceRisk }, { title: 'Burnout risk', s: d.burnoutRisk }]">
+                              <h4>{{ group.title }}: {{ group.s?.score }} / 100</h4>
+                              <div class="factor" *ngFor="let f of group.s?.factors">
+                                <span class="factor-label">{{ f.label }}</span>
+                                <div class="bar"><div class="fill" [style.width.%]="f.scaled * 100"></div></div>
+                                <span class="factor-points">+{{ f.points }}</span>
+                                <span class="small muted">{{ f.text }}</span>
+                              </div>
+                            </div>
+                            <div *ngIf="d.recentInsights.length">
+                              <h4>Recent alerts (30 days)</h4>
+                              <p class="small" *ngFor="let i of d.recentInsights">
+                                <span class="status" [ngClass]="i.severity === 'HIGH' ? 'failed' : 'pending'">{{ i.severity | titlecase }}</span>
+                                <strong>{{ i.title }}</strong> - {{ i.description }} <span class="muted">({{ i.confidence }}% confidence)</span>
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </ng-container>
+                  </tbody>
+                </table>
+                <p class="muted small">
+                  As of {{ r.asOf }} · levels: {{ r.methodology.levels }} · attendance risk: {{ r.methodology.attendanceRisk }} · burnout risk: {{ r.methodology.burnoutRisk }}.
+                  Click an employee for the full breakdown.
+                </p>
+              </ng-container>
+            </ng-container>
+
+            <!-- ===== KPI trends ===== -->
+            <ng-container *ngSwitchCase="'kpis'">
+              <div class="toolbar">
+                <mat-button-toggle-group [(ngModel)]="kpiGranularity" (change)="loadKpis()" aria-label="Granularity">
+                  <mat-button-toggle value="day">Daily (30 days)</mat-button-toggle>
+                  <mat-button-toggle value="week">Weekly (90 days)</mat-button-toggle>
+                  <mat-button-toggle value="month">Monthly (1 year)</mat-button-toggle>
+                </mat-button-toggle-group>
+                <mat-form-field appearance="outline" class="compact">
+                  <mat-label>Department</mat-label>
+                  <mat-select [(ngModel)]="kpiDepartment" (selectionChange)="loadKpis()">
+                    <mat-option [value]="null">All departments</mat-option>
+                    <mat-option *ngFor="let d of kpiDepartments" [value]="d">{{ d }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <ng-container *ngIf="kpis as k">
+                <div class="stats">
+                  <div class="stat"><span class="value">{{ k.totals.attendanceRate }}%</span><span class="label">Attendance</span></div>
+                  <div class="stat"><span class="value">{{ k.totals.absenceRate }}%</span><span class="label">Absence</span></div>
+                  <div class="stat"><span class="value">{{ k.totals.lateRate }}%</span><span class="label">Late arrivals</span></div>
+                  <div class="stat"><span class="value">{{ k.totals.wfhRate }}%</span><span class="label">WFH</span></div>
+                  <div class="stat"><span class="value">{{ k.totals.avgWorkingHours }} h</span><span class="label">Avg. working day</span></div>
+                  <div class="stat"><span class="value">{{ k.totals.avgHeadcount }}</span><span class="label">Avg. headcount</span></div>
+                </div>
+                <app-mini-chart *ngIf="k.series.length; else noKpis" [config]="kpiChart!" [height]="300"></app-mini-chart>
+                <ng-template #noKpis>
+                  <p class="empty">No KPI data for this range yet. KPIs are computed by the worker from events; history can be filled with <code>npm run kpi:backfill</code>.</p>
+                </ng-template>
+                <ng-container *ngIf="!kpiDepartment && k.byDepartment.length > 1">
+                  <h3>By department</h3>
+                  <table class="simple-table">
+                    <thead><tr><th>Department</th><th>Avg. headcount</th><th>Attendance</th><th>Absence</th><th>Late</th><th>WFH</th><th>Overtime</th></tr></thead>
+                    <tbody>
+                      <tr *ngFor="let d of k.byDepartment">
+                        <td>{{ d.department }}</td><td>{{ d.avgHeadcount }}</td><td>{{ d.attendanceRate }}%</td><td>{{ d.absenceRate }}%</td>
+                        <td>{{ d.lateRate }}%</td><td>{{ d.wfhRate }}%</td><td>{{ d.overtimeHours }} h</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </ng-container>
+                <p class="muted small">
+                  Last computed {{ k.freshness.lastComputedAt ? (k.freshness.lastComputedAt | date: 'medium') : 'never' }}
+                  <ng-container *ngIf="k.freshness.queuedDays"> · {{ k.freshness.queuedDays }} day(s) waiting to be recomputed</ng-container>
+                </p>
+              </ng-container>
+            </ng-container>
+
+            <!-- ===== Workforce (lifecycle + leave utilization) ===== -->
+            <ng-container *ngSwitchCase="'workforce'">
+              <ng-container *ngIf="lifecycle as l">
+                <div class="stats">
+                  <div class="stat"><span class="value">{{ l.headcount }}</span><span class="label">Headcount</span></div>
+                  <div class="stat"><span class="value">{{ l.totals.joiners }}</span><span class="label">Joined (12 months)</span></div>
+                  <div class="stat"><span class="value">{{ l.totals.exits }}</span><span class="label">Left (12 months)</span></div>
+                  <div class="stat"><span class="value">{{ l.totals.attritionRate }}%</span><span class="label">Attrition</span></div>
+                </div>
+                <app-mini-chart [config]="lifecycleChart!"></app-mini-chart>
+                <h3>Tenure</h3>
+                <table class="simple-table">
+                  <thead><tr><th>Department</th><th>Headcount</th><th>&lt; 1 year</th><th>1–3 years</th><th>3–5 years</th><th>5+ years</th></tr></thead>
+                  <tbody>
+                    <tr *ngFor="let d of l.byDepartment">
+                      <td>{{ d.department }}</td><td>{{ d.headcount }}</td><td>{{ d.tenure.under1y }}</td>
+                      <td>{{ d.tenure.from1to3y }}</td><td>{{ d.tenure.from3to5y }}</td><td>{{ d.tenure.over5y }}</td>
+                    </tr>
+                    <tr class="total">
+                      <td>All</td><td>{{ l.headcount }}</td><td>{{ l.tenure.under1y }}</td>
+                      <td>{{ l.tenure.from1to3y }}</td><td>{{ l.tenure.from3to5y }}</td><td>{{ l.tenure.over5y }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ng-container>
+              <ng-container *ngIf="utilization as u">
+                <h3>Leave utilization {{ u.year }}</h3>
+                <p class="muted">
+                  {{ u.totalUsedDays }} of {{ u.totalAllocatedDays }} allocated days taken
+                  ({{ u.utilizationRate ?? 0 }}%) · {{ u.averageDaysPerEmployee }} days per employee
+                </p>
+                <table class="simple-table">
+                  <thead><tr><th>Type</th><th>Allocated</th><th>Taken</th><th>Utilization</th></tr></thead>
+                  <tbody>
+                    <tr *ngFor="let t of u.byType">
+                      <td>{{ t.leaveType }}</td><td>{{ t.allocatedDays }}</td><td>{{ t.usedDays }}</td>
+                      <td>
+                        <ng-container *ngIf="t.utilizationRate !== null; else noRate">
+                          <div class="bar"><div class="fill" [style.width.%]="t.utilizationRate > 100 ? 100 : t.utilizationRate"></div></div>
+                          {{ t.utilizationRate }}%
+                        </ng-container>
+                        <ng-template #noRate>—</ng-template>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ng-container>
+            </ng-container>
+
+            <!-- ===== Reports ===== -->
+            <ng-container *ngSwitchCase="'reports'">
+              <form class="report-form" (ngSubmit)="requestReport()">
+                <mat-form-field appearance="outline" class="compact">
+                  <mat-label>Report</mat-label>
+                  <mat-select [(ngModel)]="reportForm.reportType" name="reportType">
+                    <mat-option *ngFor="let t of reportTypes" [value]="t.value">{{ t.label }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="compact">
+                  <mat-label>From</mat-label>
+                  <input matInput type="date" [(ngModel)]="reportForm.from" name="from" required>
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="compact">
+                  <mat-label>To</mat-label>
+                  <input matInput type="date" [(ngModel)]="reportForm.to" name="to" required>
+                </mat-form-field>
+                <button mat-flat-button color="primary" type="submit" [disabled]="requestingReport">
+                  <mat-icon>add</mat-icon> Generate
+                </button>
+              </form>
+              <p class="muted" *ngIf="reportMessage">{{ reportMessage }}</p>
+              <p class="muted small" *ngIf="role === 'MANAGER'">Your reports cover your direct reports.</p>
+
+              <table class="simple-table" *ngIf="reports.length; else noReports">
+                <thead><tr><th>Report</th><th>Period</th><th>Requested</th><th>Status</th><th>Summary</th><th></th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let r of reports">
+                    <td>{{ reportLabel(r.reportType) }}<span class="tag" *ngIf="!r.requestedBy">monthly</span></td>
+                    <td>{{ r.periodStart }} – {{ r.periodEnd }}</td>
+                    <td>{{ r.createdAt | date: 'short' }}</td>
+                    <td>
+                      <span class="status" [ngClass]="r.status.toLowerCase()">{{ r.status | titlecase }}</span>
+                      <mat-spinner *ngIf="r.status === 'PENDING'" diameter="14" class="inline-spinner"></mat-spinner>
+                      <div class="small error-text" *ngIf="r.error">{{ r.error }}</div>
+                    </td>
+                    <td class="small">
+                      <span *ngFor="let e of summaryEntries(r); let last = last">{{ e.key }}: {{ e.value }}{{ last ? '' : ' · ' }}</span>
+                    </td>
+                    <td>
+                      <button mat-icon-button *ngIf="r.status === 'READY'" (click)="download(r)" matTooltip="Download CSV" aria-label="Download CSV">
+                        <mat-icon>download</mat-icon>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <ng-template #noReports><p class="empty">No reports yet.</p></ng-template>
+            </ng-container>
+
+          </ng-container>
+        </div>
+      </ng-template>
+    </mat-tab>
+  </mat-tab-group>
+</mat-card>
+
+<ng-template #noData><p class="empty">No data for this period.</p></ng-template>

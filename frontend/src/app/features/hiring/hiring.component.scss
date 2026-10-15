@@ -1,0 +1,157 @@
+.hiring-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 960px;
+}
+
+.tab-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 2px;
+}
+
+mat-card {
+  padding: 16px;
+}
+
+.success-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #2e7d32;
+  background: #e8f5e9;
+  padding: 10px 14px;
+  border-radius: 6px;
+}
+
+.job-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.job-header h3 {
+  margin: 0 0 6px;
+}
+
+.job-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.job-meta span {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.job-meta mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.bonus {
+  text-align: right;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+}
+
+.bonus strong {
+  font-size: 18px;
+  color: #2e7d32;
+}
+
+.job-description {
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.referral-form,
+.job-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.grow {
+  flex: 1;
+  min-width: 220px;
+}
+
+.narrow {
+  width: 120px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.error-message {
+  color: #d32f2f;
+  font-size: 13px;
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.list-row:last-child {
+  border-bottom: none;
+}
+
+.list-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.list-title {
+  font-weight: 600;
+}
+
+.list-sub {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.muted {
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.list-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.empty-state {
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 14px;
+}

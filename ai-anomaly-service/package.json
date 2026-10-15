@@ -4,7 +4,8 @@
   "description": "Standalone anomaly-detection microservice for SmartWorkforce AI - consumes attendance events from Kafka and persists AI insights independently of the main backend",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node --test test/"
   },
   "dependencies": {
     "dotenv": "^16.3.1",

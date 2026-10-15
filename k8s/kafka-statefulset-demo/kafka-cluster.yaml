@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-cluster-headless
+spec:
+  clusterIP: None
+  selector:
+    app: kafka-cluster
+  ports:
+    - name: broker
+      port: 9092
+    - name: controller
+      port: 9093
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka-cluster
+spec:
+  serviceName: kafka-cluster-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: kafka-cluster
+  template:
+    metadata:
+      labels:
+        app: kafka-cluster
+    spec:
+      containers:
+        - name: kafka
+          image: apache/kafka:3.7.0
+          command:
+            - sh
+            - -c
+            - |
+              export KAFKA_NODE_ID=$(hostname | grep -o '[0-9]*$')
+              export KAFKA_ADVERTISED_LISTENERS="PLAINTEXT://$(hostname).kafka-cluster-headless:9092"
+              exec /etc/kafka/docker/run
+          env:
+            - name: KAFKA_PROCESS_ROLES
+              value: "broker,controller"
+            - name: KAFKA_LISTENERS
+              value: "PLAINTEXT://:9092,CONTROLLER://:9093"
+            - name: KAFKA_CONTROLLER_LISTENER_NAMES
+              value: "CONTROLLER"
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+              value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+            - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+              value: "0@kafka-cluster-0.kafka-cluster-headless:9093,1@kafka-cluster-1.kafka-cluster-headless:9093,2@kafka-cluster-2.kafka-cluster-headless:9093"
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "3"
+            - name: CLUSTER_ID
+              value: "MkU3OEVBNTcwNTJENDM2Qk"
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/kafka/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

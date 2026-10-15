@@ -109,12 +109,6 @@ const LeaveRequest = sequelize.define('LeaveRequest', {
       fields: ['organization_id']
     },
     {
-      fields: ['user_id']
-    },
-    {
-      fields: ['status']
-    },
-    {
       fields: ['leave_type']
     },
     {

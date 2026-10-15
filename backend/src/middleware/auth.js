@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken');
-const { User, Organization } = require('../models');
+const AuthService = require('../services/AuthService');
+const { userRepository } = require('../repositories');
+const { runWithTenant } = require('../utils/tenantContext');
 
 // Generate JWT token
 const generateToken = (payload) => {
@@ -28,38 +30,24 @@ const authenticate = async (req, res, next) => {
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
     const decoded = verifyToken(token);
 
-    // Find user
-    const user = await User.findOne({
-      where: { id: decoded.userId, isActive: true }
-    });
+    // User + organization, cached briefly (see AuthService.getAuthContext)
+    const context = await AuthService.getAuthContext(decoded.userId);
 
-    if (!user) {
+    if (context.error) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid or inactive user'
+        message: context.error
       });
     }
 
-    // Find organization
-    const organization = await Organization.findOne({
-      where: { id: user.organizationId, isActive: true }
-    });
-
-    if (!organization) {
-      return res.status(401).json({
-        success: false,
-        message: 'Organization is inactive'
-      });
-    }
-
-    // toJSON() already strips the password (see User model)
     req.user = {
-      ...user.toJSON(),
-      organization
+      ...context.user,
+      organization: context.organization
     };
-    req.organizationId = user.organizationId;
-    
-    next();
+    req.organizationId = context.user.organizationId;
+
+    // The rest of this request runs with the tenant as ambient context (utils/tenantContext)
+    runWithTenant({ organizationId: context.user.organizationId, userId: context.user.id, role: context.user.role }, next);
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({
@@ -116,7 +104,7 @@ const authorizeResourceAccess = async (req, res, next) => {
 
   // Allow if user has administrative role, but only within their own organization
   if (['ADMIN', 'HR'].includes(currentUser.role)) {
-    const targetUser = await User.findOne({ where: { id: targetUserId, organizationId: currentUser.organizationId } });
+    const targetUser = await userRepository.findInOrg(targetUserId, currentUser.organizationId);
     if (targetUser) {
       return next();
     }
@@ -124,7 +112,7 @@ const authorizeResourceAccess = async (req, res, next) => {
 
   // Allow managers to access their direct subordinates only, within their own organization
   if (currentUser.role === 'MANAGER') {
-    const targetUser = await User.findOne({ where: { id: targetUserId, organizationId: currentUser.organizationId } });
+    const targetUser = await userRepository.findInOrg(targetUserId, currentUser.organizationId);
     if (targetUser && targetUser.managerId === currentUser.id) {
       return next();
     }

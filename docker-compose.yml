@@ -43,6 +43,20 @@ services:
       /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.leave.events --partitions 3 --replication-factor 1;
       /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.wfh.events --partitions 3 --replication-factor 1;
       /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.announcement.events --partitions 3 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.regularization.events --partitions 3 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.policy.events --partitions 3 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.employee.events --partitions 3 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.hiring.events --partitions 3 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.report.events --partitions 3 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.attendance.events.dlq --partitions 1 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.leave.events.dlq --partitions 1 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.wfh.events.dlq --partitions 1 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.regularization.events.dlq --partitions 1 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.announcement.events.dlq --partitions 1 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.policy.events.dlq --partitions 1 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.employee.events.dlq --partitions 1 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.hiring.events.dlq --partitions 1 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic smartai.report.events.dlq --partitions 1 --replication-factor 1;
       "
 
   backend:
@@ -58,6 +72,21 @@ services:
         condition: service_healthy
       kafka:
         condition: service_started
+
+  # Same image as backend, different command: Kafka consumers + scheduled jobs
+  backend-worker:
+    build: ./backend
+    command: ["node", "src/workers/index.js"]
+    env_file: ./backend/.env
+    environment:
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKER: kafka:9092
+      WORKERS: all
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka-topics-init:
+        condition: service_completed_successfully
 
   ai-anomaly-service:
     build: ./ai-anomaly-service

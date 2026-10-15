@@ -136,16 +136,10 @@ const AiInsight = sequelize.define('AiInsight', {
       fields: ['insight_type']
     },
     {
-      fields: ['severity']
-    },
-    {
       fields: ['generated_at']
     },
     {
       fields: ['score']
-    },
-    {
-      fields: ['is_actionable']
     },
     {
       fields: ['organization_id', 'insight_type', 'generated_at']
